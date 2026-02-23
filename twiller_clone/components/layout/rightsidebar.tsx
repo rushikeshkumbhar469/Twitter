@@ -81,7 +81,7 @@ const RightSidebar = () => {
                   <div className="flex items-center space-x-1">
                     <span className="font-semibold text-white truncate">{user.name}</span>
                     {user.verified && (
-                      <Check className="h-4 w-4 text-blue-500 fill-blue-500 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-blue-500 fill-blue-500 shrink-0" />
                     )}
                   </div>
                   <p className="text-gray-500 text-sm truncate">@{user.username}</p>
@@ -89,7 +89,7 @@ const RightSidebar = () => {
               </div>
               <Button
                 variant="outline"
-                className="ml-2 rounded-full border-gray-700 text-white hover:bg-gray-800 bg-transparent flex-shrink-0 hover:text-white"
+                className="ml-2 rounded-full border-gray-700 text-white hover:bg-gray-800 bg-transparent shrink-0 hover:text-white"
               >
                 Follow
               </Button>
