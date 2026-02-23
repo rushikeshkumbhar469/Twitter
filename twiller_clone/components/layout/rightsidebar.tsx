@@ -12,8 +12,9 @@ const RightSidebar = () => {
     {
       name: "Narendra Modi",
       username: "narendramodi",
-      avatar: "https://pbs.twimg.com/profile_images/1234567890/narendramodi.jpg",
+      avatar: "",
       verified: true,
+      fallback: "N",
     },
     {
       name: "Akshay Kumar",
@@ -25,8 +26,9 @@ const RightSidebar = () => {
     {
       name: "President of India",
       username: "rashtrapatibhvn",
-      avatar: "https://pbs.twimg.com/profile_images/1234567890/president.jpg",
+      avatar: "",
       verified: true,
+      fallback: "P",
     },
   ];
 

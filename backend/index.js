@@ -20,7 +20,7 @@ const url = process.env.MONGODB_URL;
 mongoose
   .connect(url)
   .then(() => {
-    console.log("Connected to DB");
+    console.log("Connected to DB ✅");
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
@@ -70,7 +70,6 @@ app.patch("/userupdate/:email", async (req, res) => {
       { $set: req.body },
       { new: true, upsert: false }
     );
-    I;
     return res.status(200).send(updated);
   } catch (error) {
     return res.status(400).send({ error: error.message });
