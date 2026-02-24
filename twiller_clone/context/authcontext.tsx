@@ -28,6 +28,7 @@ interface User {
   website?: string;
   joinedDate: string;
   email: string;
+  notificationsEnabled?: boolean;
 }
 
 interface AuthContextType {
@@ -45,6 +46,7 @@ interface AuthContextType {
     location: string;
     website: string;
     avatar: string;
+    notificationsEnabled?: boolean;
   }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -156,6 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     location: string;
     website: string;
     avatar: string;
+    notificationsEnabled?: boolean;
   }) => {
     if (!user) return;
     setIsLoading(true);
@@ -186,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const res = await axiosInstance.get("/loggedinuser", {
           params: { email: firebaseuser.email },
         });
-        
+
         if (res.data) {
           setuser(res.data);
           localStorage.setItem("twitter-user", JSON.stringify(res.data));

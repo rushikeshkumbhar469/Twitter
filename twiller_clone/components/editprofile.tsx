@@ -2,8 +2,9 @@ import { useAuth } from "@/context/authcontext";
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Camera, LinkIcon, MapPin, X } from "lucide-react";
+import { Camera, LinkIcon, MapPin, X, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -19,7 +20,8 @@ const EditProfile = ({ isopen, isclose }: any) => {
     bio: user?.bio || "",
     location: user?.location || "Earth",
     website: user?.website || "example.com",
-    avatar: user?.avatar || ""
+    avatar: user?.avatar || "",
+    notificationsEnabled: user?.notificationsEnabled || false
   });
   const [error, setError] = useState<any>({});
 
@@ -275,6 +277,22 @@ const EditProfile = ({ isopen, isclose }: any) => {
                     {formData.website.length}/100
                   </p>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-gray-800 rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-white text-base font-semibold flex items-center gap-2">
+                    <Bell className="h-4 w-4" /> Keyword Notifications
+                  </Label>
+                  <p className="text-sm text-gray-400">
+                    Receive popup notifications when a new tweet contains the words "cricket" and "science".
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.notificationsEnabled}
+                  onCheckedChange={(checked) => handleInputChange("notificationsEnabled", checked as any)}
+                  disabled={isLoading}
+                />
               </div>
             </div>
           </form>
