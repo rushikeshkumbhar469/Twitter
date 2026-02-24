@@ -32,6 +32,7 @@ export type Tweet = {
   liked: boolean;
   retweeted: boolean;
   image?: string;
+  audio?: string;
 };
 
 const ProfilePage = () => {
@@ -217,7 +218,7 @@ const ProfilePage = () => {
 
             <TabsContent value="replies">
               <div className="py-8 text-center text-gray-500 text-sm">
-                Replies to other posts will appear here.  
+                Replies to other posts will appear here.
               </div>
             </TabsContent>
 

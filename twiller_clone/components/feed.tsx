@@ -21,6 +21,7 @@ export type Tweet = {
     liked: boolean;
     retweeted: boolean;
     image?: string;
+    audio?: string;
 };
 
 const tweets: Tweet[] = [

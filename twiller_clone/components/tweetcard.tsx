@@ -41,7 +41,7 @@ const TweetCard = ({ tweet }: any) => {
                         <span className="text-gray-500">@{user?.username || ""}</span>
                         <span className="text-gray-500">.</span>
                         <span className="text-gray-500">{tweet.timestamp &&
-                            new Date(tweet.timestamp).toLocaleDateString("en-us",{
+                            new Date(tweet.timestamp).toLocaleDateString("en-us", {
                                 month: "long",
                                 year: "numeric",
                             })}</span>
@@ -60,6 +60,11 @@ const TweetCard = ({ tweet }: any) => {
                             <img src={tweet.image} alt="tweet image" className="w-full h-auto max-h-96 object-cover" />
                         </div>
                     )}
+                    {tweet.audio && (
+                        <div className="mb-3 rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 p-2">
+                            <audio controls src={tweet.audio} className="w-full h-10 outline-none" />
+                        </div>
+                    )}
                     <div className="mt-1 flex items-center justify-between max-w-md">
                         <Button
                             variant="ghost"
@@ -71,43 +76,39 @@ const TweetCard = ({ tweet }: any) => {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className={`flex items-center space-x-2 p-2 rounded-full hover:bg-emerald-900/20 group ${
-                                tweet.retweeted
+                            className={`flex items-center space-x-2 p-2 rounded-full hover:bg-emerald-900/20 group ${tweet.retweeted
                                     ? "text-emerald-500"
                                     : "text-gray-500 hover:text-emerald-400"
-                            }`}
+                                }`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 retweet(tweet.id);
                             }}
                         >
                             <Repeat2
-                                className={`h-5 w-5 ${
-                                    tweet.retweeted
+                                className={`h-5 w-5 ${tweet.retweeted
                                         ? "text-emerald-500 fill-current"
                                         : "group-hover:text-emerald-400"
-                                }`} />
+                                    }`} />
                             <span className="text-sm">{formatnumber(tweet.retweets)}</span>
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
-                            className={`flex items-center space-x-2 p-2 rounded-full hover:bg-red-900/20 group ${
-                                tweet.liked
+                            className={`flex items-center space-x-2 p-2 rounded-full hover:bg-red-900/20 group ${tweet.liked
                                     ? "text-red-500"
                                     : "text-gray-500 hover:text-red-400"
-                            }`}
+                                }`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 liketweet(tweet.id);
                             }}
                         >
                             <Heart
-                                className={`h-5 w-5 ${
-                                    tweet.liked
+                                className={`h-5 w-5 ${tweet.liked
                                         ? "text-red-500 fill-current"
                                         : "group-hover:text-red-400"
-                                }`}
+                                    }`}
                             />
                             <span className="text-sm">{formatnumber(tweet.likes)}</span>
                         </Button>
