@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import TwitterLogo from "./twitterlogo";
 import LoadingSpinner from "./loading-spinner";
-import { X, User, Lock, EyeOff, Eye } from "lucide-react";
+import { X, User, Lock, EyeOff, Eye, AlertCircle } from "lucide-react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/context/authcontext";
+import { useRouter } from "next/navigation";
 
 interface AuthModelProps {
   isopen: boolean;
@@ -23,6 +24,7 @@ export default function AuthModel({
   initialMode = "login",
 }: AuthModelProps) {
   const { login, signup, isLoading } = useAuth();
+  const router = useRouter();
   const [Mode, setMode] = useState<"login" | "signup">(initialMode);
   const [showpassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,10 +72,15 @@ export default function AuthModel({
   };
   const handelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!validateForm() || isLoading) return;
     try {
       if (Mode === "login") {
-        await login(formData.email, formData.password);
+        const result = await login(formData.email, formData.password);
+        if (!result.success) {
+          setError({ general: result.error || "Invalid email or password" });
+          return;
+        }
       } else {
         await signup(
           formData.email,
@@ -90,15 +97,28 @@ export default function AuthModel({
         username: "",
         displayname: "",
       });
-    } catch (error) {
-      setError({ general: "Authentication failed. Please try again" });
+    } catch (error: any) {
+      // Safely map any uncaught Firebase errors to a clean message
+      const code = error?.code || "";
+      if (
+        code === "auth/invalid-credential" ||
+        code === "auth/user-not-found" ||
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-email"
+      ) {
+        setError({ general: "Incorrect email or password. Please try again." });
+      } else {
+        setError({ general: "Something went wrong. Please try again." });
+      }
     }
   };
   const handleInputchange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (error[field]) {
-      setError((prev: any) => ({ ...prev, [field]: "" }));
-    }
+    setError((prev: any) => {
+      const next = { ...prev, [field]: "" };
+      // Do NOT clear 'general' error on typing — it clears on next submit
+      return next;
+    });
   };
   const switchMode = () => {
     setMode(Mode === "login" ? "signup" : "login");
@@ -111,7 +131,7 @@ export default function AuthModel({
     });
   };
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
     >
       <Card className="w-full max-w-md bg-black border-gray-800 text-white">
@@ -135,8 +155,9 @@ export default function AuthModel({
         </CardHeader>
         <CardContent className="space-y-6">
           {error.general && (
-            <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 text-red-400 text-sm">
-              {error.general}
+            <div className="flex items-center gap-2 bg-red-900/20 border border-red-800 rounded-lg p-3 text-red-400 text-sm">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <span>{error.general}</span>
             </div>
           )}
           <form onSubmit={handelSubmit} className="space-y-4">
@@ -312,6 +333,20 @@ export default function AuthModel({
                     <p className="text-red-400 text-sm">{error.password}</p>
                   )}
                 </div>
+
+                <div className="flex justify-end mt-1 mb-4 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onclose();
+                      router.push("/forgot-password");
+                    }}
+                    className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors focus:outline-none"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-full text-lg"

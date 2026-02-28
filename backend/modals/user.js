@@ -9,6 +9,7 @@ const UserSchema = mongoose.Schema({
   website: { type: String, default: "" },
   joinedDate: { type: Date, default: Date.now },
   notificationsEnabled: { type: Boolean, default: false },
+  lastForgotPasswordDate: { type: Date },
 });
 
 export default mongoose.model("User", UserSchema);
