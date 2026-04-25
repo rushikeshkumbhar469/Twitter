@@ -1,17 +1,21 @@
+"use client";
 import { useAuth } from "@/context/authcontext";
-import React, { useState } from "react";
+import { useTranslation } from "@/context/translationcontext";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { BarChart3, Calendar, Globe, Image, MapPin, Smile, Mic, Square, Trash2 } from "lucide-react";
+import { BarChart3, Calendar, Globe, Image, MapPin, Smile, Mic, Square, Trash2, Crown } from "lucide-react";
 import { Separator } from "./ui/separator";
 import axios from "axios";
 import axiosInstance from "@/lib/axiosinstance";
 import { Input } from "./ui/input";
+import { TranslatedText } from "@/components/ui/translated-text";
 
 const TweetComposer = ({ onTweetPosted }: any) => {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [content, setcontent] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [imageurl, setImageurl] = useState("");
@@ -31,7 +35,23 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     const [otpLoading, setOtpLoading] = useState(false);
     const [otpError, setOtpError] = useState("");
 
+    // Subscription state
+    const [subStatus, setSubStatus] = useState<any>(null);
+    const [tweetLimitError, setTweetLimitError] = useState("");
+
     const maxlength = 200;
+
+    const fetchSubStatus = useCallback(async () => {
+        if (!user?.email) return;
+        try {
+            const res = await axiosInstance.get(`/subscription-status?email=${user.email}`);
+            setSubStatus(res.data);
+        } catch (_) {}
+    }, [user?.email]);
+
+    useEffect(() => {
+        fetchSubStatus();
+    }, [fetchSubStatus]);
 
     const startRecording = async () => {
         try {
@@ -153,6 +173,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
 
     const submitTweet = async (uploadedAudioUrl: string | null) => {
         setIsLoading(true);
+        setTweetLimitError("");
         try {
             const tweetdata = {
                 author: user?._id,
@@ -165,8 +186,14 @@ const TweetComposer = ({ onTweetPosted }: any) => {
             setcontent("");
             setImageurl("");
             if (!uploadedAudioUrl) deleteRecording();
-        } catch (error) {
-            console.log(error);
+            // Refresh subscription count after posting
+            fetchSubStatus();
+        } catch (error: any) {
+            if (error?.response?.status === 403 && error?.response?.data?.planLimitReached) {
+                setTweetLimitError(error.response.data.error);
+            } else {
+                console.log(error);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -174,6 +201,11 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     const characterCount = content.length;
     const isoverlimit = characterCount > maxlength;
     const isnearlimit = characterCount > maxlength * 0.8;
+    const tweetsUsed: number = subStatus?.tweetsUsed ?? 0;
+    const tweetLimit = subStatus?.tweetLimit;
+    const tweetsRemaining = subStatus?.tweetsRemaining;
+    const isLimitReached = typeof tweetsRemaining === 'number' && tweetsRemaining <= 0;
+
     if (!user) return null;
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +232,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     };
 
     return (
-        <Card className="bg-black border-gray-800 border-x-0 border-t-0 rounded-none">
+        <Card className="bg-black border-none rounded-none shadow-none">
             <CardContent className="pt-4">
                 <div className="flex space-x-4">
                     <Avatar className="h-12 w-12">
@@ -214,15 +246,31 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                             <Textarea
                                 value={content}
                                 onChange={(e) => setcontent(e.target.value)}
-                                placeholder="What's happening?"
-                                className="bg-transparent border-none text-xl text-white placeholder-gray-500 resize-none min-h-[120px] focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                                placeholder={t("whatshappening")}
+                                className="bg-transparent border-none text-lg text-white placeholder-gray-500 resize-none min-h-[100px] focus-visible:ring-0 focus-visible:ring-offset-0 p-0 mb-2"
                             />
 
+                            {/* Tweet limit error */}
+                            {tweetLimitError && (
+                                <div className="mb-3 flex items-start gap-2 bg-red-950/30 border border-red-800/50 rounded-xl px-3 py-2 animate-in fade-in slide-in-from-top-1">
+                                    <Crown className="h-4 w-4 text-yellow-400 mt-0.5 shrink-0" />
+                                    <div className="flex-1">
+                                        <TranslatedText text={tweetLimitError} className="text-red-300 text-xs leading-tight" />
+                                        <button
+                                            type="button"
+                                            className="text-[10px] text-blue-400 hover:underline mt-0.5 font-bold"
+                                            onClick={() => (window as any).__navigateToSubscription?.()}
+                                        >
+                                            <TranslatedText text="UPGRADE PLAN" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
                                     <label
                                         htmlFor="tweetImage"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 cursor-pointer"
+                                        className="p-1.5 rounded-full hover:bg-blue-900/20 cursor-pointer text-blue-400 transition-colors"
                                     >
                                         <Image className="h-5 w-5" />
                                         <input
@@ -235,81 +283,69 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                         />
                                     </label>
 
-                                    {/* Mic recording button */}
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className={`p-2 rounded-full transition-colors ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60" : "hover:bg-blue-900/20 text-blue-400"}`}
+                                        className={`p-1.5 h-8 w-8 rounded-full transition-colors shrink-0 ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60" : "hover:bg-blue-900/20 text-blue-400"}`}
                                         onClick={isRecording ? stopRecording : startRecording}
                                         disabled={isLoading || !!audioBlob}
                                     >
-                                        {isRecording ? <Square className="h-5 w-5 fill-current" /> : <Mic className="h-5 w-5" />}
+                                        {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
                                     </Button>
 
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 text-blue-400 hover:text-blue-400 transition-colors"
-                                    >
+                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
                                         <BarChart3 className="h-5 w-5" />
                                     </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 text-blue-400 hover:text-blue-400 transition-colors"
-                                    >
+                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
                                         <Smile className="h-5 w-5" />
                                     </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 text-blue-400 hover:text-blue-400 transition-colors"
-                                    >
+                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
                                         <Calendar className="h-5 w-5" />
                                     </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 text-blue-400 hover:text-blue-400 transition-colors"
-                                    >
+                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
                                         <MapPin className="h-5 w-5" />
                                     </Button>
                                 </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex items-center space-x-2">
-                                        <Globe className="h-4 w-4 text-blue-400" />
-                                        <span className="text-sm text-blue-400 font-semibold hidden sm:inline">
-                                            Everyone can reply
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center space-x-1 shrink-0">
+                                        <Globe className="h-3.5 w-3.5 text-blue-400" />
+                                        <span className="text-[10px] text-blue-400 font-bold uppercase hidden sm:inline">
+                                            <TranslatedText text="Public" />
                                         </span>
                                     </div>
-                                    <div className="flex items-center space-x-3">
+                                    <div className="flex items-center space-x-2 shrink-0">
+                                    {subStatus && tweetLimit !== "Unlimited" && isLimitReached && (
+                                        <button 
+                                            type="button"
+                                            onClick={() => (window as any).__navigateToSubscription?.()}
+                                            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-900/30 text-red-400 border border-red-900/50 animate-pulse hover:bg-red-900/50 transition-colors"
+                                        >
+                                            LIMIT REACHED
+                                        </button>
+                                    )}
                                         {characterCount > 0 && (
                                             <div className="flex items-center space-x-2">
-                                                <div className="relative w-8 h-8">
-                                                    <svg className="w-8 h-8 transform -rotate-90">
+                                                <div className="relative w-5 h-5">
+                                                    <svg className="w-5 h-5 transform -rotate-90">
                                                         <circle
-                                                            cx="16"
-                                                            cy="16"
-                                                            r="14"
+                                                            cx="10"
+                                                            cy="10"
+                                                            r="8"
                                                             stroke="currentColor"
-                                                            strokeWidth="2"
+                                                            strokeWidth="1.5"
                                                             fill="none"
-                                                            className="text-gray-700"
+                                                            className="text-gray-800"
                                                         />
                                                         <circle
-                                                            cx="16"
-                                                            cy="16"
-                                                            r="14"
+                                                            cx="10"
+                                                            cy="10"
+                                                            r="8"
                                                             stroke="currentColor"
-                                                            strokeWidth="2"
+                                                            strokeWidth="1.5"
                                                             fill="none"
-                                                            strokeDasharray={`${2 * Math.PI * 14}`}
-                                                            strokeDashoffset={`${2 * Math.PI * 14 * (1 - characterCount / maxlength)}`}
+                                                            strokeDasharray={`${2 * Math.PI * 8}`}
+                                                            strokeDashoffset={`${2 * Math.PI * 8 * (1 - Math.min(characterCount, maxlength) / maxlength)}`}
                                                             className={
                                                                 isoverlimit
                                                                     ? "text-red-500"
@@ -320,23 +356,12 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                                         />
                                                     </svg>
                                                 </div>
-                                                {isnearlimit && (
-                                                    <span className={`text-sm ${isoverlimit ? "text-red-500" : "text-blue-500"
-                                                        }`}
-                                                    >
-                                                        {maxlength - characterCount}
-                                                    </span>
-                                                )}
-                                                <Separator
-                                                    orientation="vertical"
-                                                    className="h-6 bg-gray-700"
-                                                />
                                                 <Button
                                                     type="submit"
                                                     disabled={(!content.trim() && !imageurl && !audioBlob) || isoverlimit || isLoading || isRecording}
-                                                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold rounded-full px-6"
+                                                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-full px-5 h-8 text-sm transition-all"
                                                 >
-                                                    Post
+                                                    <TranslatedText text="Post" />
                                                 </Button>
                                             </div>
                                         )}
@@ -344,9 +369,9 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                             <Button
                                                 type="submit"
                                                 disabled={(!content.trim() && !imageurl && !audioBlob) || isoverlimit || isLoading || isRecording}
-                                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold rounded-full px-6"
+                                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-full px-5 h-8 text-sm transition-all"
                                             >
-                                                Post
+                                                <TranslatedText text="Post" />
                                             </Button>
                                         )}
                                     </div>
@@ -357,7 +382,9 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                             {isRecording && (
                                 <div className="flex items-center gap-3 mt-4 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                    <span className="text-red-500 font-medium">Recording: {formatTime(recordingTime)} / 5:00</span>
+                                    <span className="text-red-500 font-medium">
+                                        <TranslatedText text="Recording" />: {formatTime(recordingTime)} / 5:00
+                                    </span>
                                 </div>
                             )}
 
@@ -379,9 +406,11 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
                         <Card className="w-full max-w-sm bg-black border border-gray-800">
                             <CardContent className="pt-6 space-y-4">
-                                <h2 className="text-xl font-bold text-white text-center">Verify Email to Upload</h2>
+                                <h2 className="text-xl font-bold text-white text-center">
+                                    <TranslatedText text="Verify Email to Upload" />
+                                </h2>
                                 <p className="text-sm text-gray-400 text-center">
-                                    An OTP has been sent to your email. Please verify to post this audio tweet.
+                                    <TranslatedText text="An OTP has been sent to your email. Please verify to post this audio tweet." />
                                 </p>
                                 <Input
                                     placeholder="Enter 6-digit OTP"
@@ -390,11 +419,13 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                     maxLength={6}
                                     onChange={(e) => setOtpCode(e.target.value)}
                                 />
-                                {otpError && <p className="text-sm text-red-500 text-center">{otpError}</p>}
+                                {otpError && <p className="text-sm text-red-500 text-center"><TranslatedText text={otpError} /></p>}
                                 <div className="flex gap-3 pt-2">
-                                    <Button variant="outline" className="flex-1 bg-transparent text-white border-gray-700 hover:bg-gray-800 hover:text-white" onClick={() => setShowOtpModal(false)}>Cancel</Button>
+                                    <Button variant="outline" className="flex-1 bg-transparent text-white border-gray-700 hover:bg-gray-800 hover:text-white" onClick={() => setShowOtpModal(false)}>
+                                        <TranslatedText text="Cancel" />
+                                    </Button>
                                     <Button className="flex-1 bg-white text-black hover:bg-gray-200 font-semibold" onClick={verifyOtpAndSubmit} disabled={otpLoading || otpCode.length !== 6}>
-                                        {otpLoading ? "Verifying..." : "Verify & Post"}
+                                        {otpLoading ? <TranslatedText text="Verifying..." /> : <TranslatedText text="Verify & Post" />}
                                     </Button>
                                 </div>
                             </CardContent>

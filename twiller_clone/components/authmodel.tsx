@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import TwitterLogo from "./twitterlogo";
 import LoadingSpinner from "./loading-spinner";
-import { X, User, Lock, EyeOff, Eye, AlertCircle } from "lucide-react";
+import { X, User, Lock, EyeOff, Eye, AlertCircle, Phone, Globe } from "lucide-react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/context/authcontext";
 import { useRouter } from "next/navigation";
+import axiosInstance from "@/lib/axiosinstance";
 
 interface AuthModelProps {
   isopen: boolean;
@@ -23,7 +24,7 @@ export default function AuthModel({
   onclose,
   initialMode = "login",
 }: AuthModelProps) {
-  const { login, signup, isLoading } = useAuth();
+  const { login, verifyLoginOtp, signup, isLoading } = useAuth();
   const router = useRouter();
   const [Mode, setMode] = useState<"login" | "signup">(initialMode);
   const [showpassword, setShowPassword] = useState(false);
@@ -32,7 +33,14 @@ export default function AuthModel({
     password: "",
     username: "",
     displayname: "",
+    language: "en",
+    phone: "",
   });
+
+  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [showLoginOtpStep, setShowLoginOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const [error, setError] = useState<Record<string, string>>({});
 
@@ -65,6 +73,10 @@ export default function AuthModel({
       if (!formData.displayname.trim()) {
         newError.displayname = "Display name is required";
       }
+
+      if (formData.language !== "fr" && !formData.phone.trim()) {
+        newError.phone = "Phone number is required for verification";
+      }
     }
 
     setError(newError);
@@ -74,20 +86,72 @@ export default function AuthModel({
     e.preventDefault();
     e.stopPropagation();
     if (!validateForm() || isLoading) return;
+
+    if (Mode === "signup" && !showOtpStep) {
+      // Step 1: Send OTP
+      setOtpLoading(true);
+      try {
+        await axiosInstance.post("/send-signup-otp", {
+          email: formData.email,
+          phone: formData.phone,
+          language: formData.language,
+        });
+        setShowOtpStep(true);
+        setError({});
+      } catch (error: any) {
+        setError({ general: error.response?.data?.error || "Failed to send OTP" });
+      } finally {
+        setOtpLoading(false);
+      }
+      return;
+    }
+
     try {
-      if (Mode === "login") {
+      if (Mode === "login" && !showLoginOtpStep) {
         const result = await login(formData.email, formData.password);
         if (!result.success) {
+          if (result.requiresOtp) {
+            setShowLoginOtpStep(true);
+            setError({ general: result.error || "OTP sent to your email. Please verify to continue." });
+            return;
+          }
           setError({ general: result.error || "Invalid email or password" });
           return;
         }
+      } else if (Mode === "login" && showLoginOtpStep) {
+        const result = await verifyLoginOtp(formData.email, formData.password, otpCode);
+        if (!result.success) {
+          setError({ general: result.error || "Invalid OTP" });
+          return;
+        }
+        setShowLoginOtpStep(false);
+        setOtpCode("");
       } else {
+        // Step 2: Verify OTP and Register
+        setOtpLoading(true);
+        try {
+          await axiosInstance.post("/verify-signup-otp", {
+            email: formData.email,
+            phone: formData.phone,
+            language: formData.language,
+            otp: otpCode,
+          });
+        } catch (error: any) {
+          setError({ general: error.response?.data?.error || "Invalid OTP" });
+          setOtpLoading(false);
+          return;
+        }
+        
         await signup(
           formData.email,
           formData.password,
           formData.username,
-          formData.displayname
+          formData.displayname,
+          formData.language,
+          formData.phone
         );
+        setShowOtpStep(false);
+        setOtpCode("");
       }
       onclose();
       setError({});
@@ -96,6 +160,8 @@ export default function AuthModel({
         password: "",
         username: "",
         displayname: "",
+        language: "en",
+        phone: "",
       });
     } catch (error: any) {
       // Safely map any uncaught Firebase errors to a clean message
@@ -123,11 +189,16 @@ export default function AuthModel({
   const switchMode = () => {
     setMode(Mode === "login" ? "signup" : "login");
     setError({});
+    setShowOtpStep(false);
+    setShowLoginOtpStep(false);
+    setOtpCode("");
     setFormData({
       email: "",
       password: "",
       username: "",
       displayname: "",
+      language: "en",
+      phone: "",
     });
   };
   return (
@@ -161,7 +232,7 @@ export default function AuthModel({
             </div>
           )}
           <form onSubmit={handelSubmit} className="space-y-4">
-            {Mode === "signup" && (
+            {Mode === "signup" && !showOtpStep && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email-signup" className="text-white">
@@ -262,15 +333,62 @@ export default function AuthModel({
                     <p className="text-red-400 text-sm">{error.password}</p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="language" className="text-white">
+                    Language
+                  </Label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <select
+                      id="language"
+                      value={formData.language}
+                      onChange={(e) => handleInputchange("language", e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-600 text-white rounded-md focus:border-blue-500 appearance-none"
+                    >
+                      <option value="en">English</option>
+                      <option value="hi">Hindi</option>
+                      <option value="es">Spanish</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="zh">Chinese</option>
+                      <option value="fr">French</option>
+                    </select>
+                  </div>
+                </div>
+
+                {formData.language !== "fr" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-white">
+                      Phone Number (for OTP verification)
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="Your phone number"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          handleInputchange("phone", e.target.value)
+                        }
+                        className="pl-10 bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                      />
+                    </div>
+                    {error.phone && (
+                      <p className="text-red-400 text-sm">{error.phone}</p>
+                    )}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-full text-lg"
-                  disabled={isLoading}
+                  disabled={isLoading || otpLoading}
                 >
-                  {isLoading ? (
+                  {isLoading || otpLoading ? (
                     <div className="flex items-center space-x-2">
                       <LoadingSpinner size="sm" />
-                      <span>Creating account...</span>
+                      <span>{otpLoading ? "Sending OTP..." : "Creating account..."}</span>
                     </div>
                   ) : (
                     'Create account'
@@ -278,7 +396,55 @@ export default function AuthModel({
                 </Button>
               </>
             )}
-            {Mode === "login" && (
+
+            {Mode === "signup" && showOtpStep && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <p className="text-gray-300">
+                    We've sent a verification code to{" "}
+                    <span className="font-bold text-white">
+                      {formData.language === "fr" ? formData.email : formData.phone}
+                    </span>
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="otp" className="text-white">
+                    Verification Code
+                  </Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    maxLength={6}
+                    className="bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 text-center text-lg tracking-widest"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1 bg-transparent text-white border-gray-700 hover:bg-gray-800 hover:text-white" 
+                    onClick={() => setShowOtpStep(false)}
+                    disabled={isLoading || otpLoading}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="flex-1 bg-blue-500 text-white hover:bg-blue-600 font-semibold" 
+                    disabled={isLoading || otpLoading || otpCode.length !== 6}
+                  >
+                    {isLoading || otpLoading ? "Verifying..." : "Verify & Register"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {Mode === "login" && !showLoginOtpStep && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email-login" className="text-white">
@@ -362,6 +528,51 @@ export default function AuthModel({
                   )}
                 </Button>
               </>
+            )}
+
+            {Mode === "login" && showLoginOtpStep && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <p className="text-gray-300">
+                    Enter OTP sent to <span className="font-bold text-white">{formData.email}</span>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-otp" className="text-white">
+                    Login OTP
+                  </Label>
+                  <Input
+                    id="login-otp"
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    maxLength={6}
+                    className="bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 text-center text-lg tracking-widest"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 bg-transparent text-white border-gray-700 hover:bg-gray-800 hover:text-white"
+                    onClick={() => {
+                      setShowLoginOtpStep(false);
+                      setOtpCode("");
+                    }}
+                    disabled={isLoading}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-blue-500 text-white hover:bg-blue-600 font-semibold"
+                    disabled={isLoading || otpCode.length !== 6}
+                  >
+                    {isLoading ? "Verifying..." : "Verify & Login"}
+                  </Button>
+                </div>
+              </div>
             )}
           </form>
           <div className="relative">

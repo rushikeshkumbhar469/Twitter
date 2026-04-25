@@ -9,8 +9,7 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import LoadingSpinner from "./loading-spinner";
-import { format } from "path";
-import axios from "axios";
+import axiosInstance from "@/lib/axiosinstance";
 
 const EditProfile = ({ isopen, isclose }: any) => {
   const { user, updateProfile } = useAuth();
@@ -79,19 +78,23 @@ const EditProfile = ({ isopen, isclose }: any) => {
     setIsLoading(true);
     const image = e.target.files[0];
     const formdataimg = new FormData();
-    formdataimg.set("image", image);
+    formdataimg.append("image", image);
     try {
-      const res = await axios.post(
-        "https://api.imgbb.com/1/upload?key=76890dfeb9394a0690592041ba2be777",
-        formdataimg,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      const url = res.data.data.display_url;
-      if (url) {
-        setFormData((prev) => ({ ...prev, avatar: url }));
+      const res = await axiosInstance.post("/upload-image", formdataimg, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      const baseUrl = axiosInstance.defaults.baseURL?.replace(/\/$/, "") || "";
+      const fullUrl = res.data.imageUrl.startsWith("http") 
+        ? res.data.imageUrl 
+        : `${baseUrl}${res.data.imageUrl}`;
+
+      if (fullUrl) {
+        setFormData((prev) => ({ ...prev, avatar: fullUrl }));
       }
     } catch (error) {
       console.log(error);
+      alert("Failed to upload image to local server.");
     } finally {
       setIsLoading(false);
     }

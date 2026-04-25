@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/authcontext";
+import { useTranslation } from "@/context/translationcontext";
+import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import TweetCard from "./tweetcard";
 import { Button } from "./ui/button";
 import EditProfile from "./editprofile";
@@ -14,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import axiosInstance from "@/lib/axiosinstance";
+import { TranslatedText } from "@/components/ui/translated-text";
 
 export type Tweet = {
   id: number;
@@ -36,13 +39,22 @@ export type Tweet = {
 };
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, getLoginHistory } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("posts");
   const [showEditModal, setShowEditModal] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const { setuser } = useAuth();
+
+  // Translate bio text to current language
+  const { translated: translatedBio } = useAutoTranslate(user?.bio || "");
 
   if (!user) return;
 
   const [tweets, setTweets] = useState<any>([]);
+  const [replies, setReplies] = useState<any>([]);
+  const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const fetchTweets = async () => {
     try {
@@ -55,12 +67,91 @@ const ProfilePage = () => {
       setLoading(false);
     }
   };
+
+  const fetchReplies = async () => {
+    if (!user?._id) return;
+    try {
+      const res = await axiosInstance.get(`/user/${user._id}/replies`);
+      setReplies(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchTweets();
+    fetchReplies();
+    const fetchLoginHistory = async () => {
+      if (!user?.email) return;
+      try {
+        const data = await getLoginHistory(user.email);
+        setLoginHistory(data.slice(0, 20));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchLoginHistory();
   }, []);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "cover") => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.email) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      setLoading(true);
+      
+      // Post to our local upload endpoint
+      const uploadRes = await axiosInstance.post("/upload-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (!uploadRes.data?.imageUrl) {
+        throw new Error("Server failed to return image URL.");
+      }
+
+      const baseUrl = axiosInstance.defaults.baseURL?.replace(/\/$/, "") || "";
+      const fullImageUrl = uploadRes.data.imageUrl.startsWith("http") 
+        ? uploadRes.data.imageUrl 
+        : `${baseUrl}${uploadRes.data.imageUrl}`;
+      
+      // Update user profile in backend
+      const updateData = type === "avatar" ? { avatar: fullImageUrl } : { cover: fullImageUrl };
+      const updateRes = await axiosInstance.patch(`/userupdate/${encodeURIComponent(user.email)}`, updateData);
+      
+      if (updateRes.data) {
+        setuser(updateRes.data);
+        localStorage.setItem("twitter-user", JSON.stringify(updateRes.data));
+        console.log(`${type} updated successfully:`, fullImageUrl);
+      }
+    } catch (error: any) {
+      console.error(`Error updating ${type}:`, error);
+      const message = error.response?.data?.error || error.message || "Unknown error";
+      alert(`Failed to update ${type}: ${message}`);
+    } finally {
+      setLoading(false);
+      // Reset input value so same file can be selected again
+      e.target.value = "";
+    }
+  };
 
   const userTweets = tweets.filter(
-    (tweet: any) => tweet.author?.id === user._id || tweet.author === user._id
+    (tweet: any) => (tweet.author?._id === user._id) || (tweet.author === user._id)
+  );
+
+  const mediaTweets = userTweets.filter(
+    (tweet: any) => tweet.image || (tweet.images && tweet.images.length > 0) || tweet.audio
+  );
+
+  const highlightTweets = userTweets.filter(
+    (tweet: any) => tweet.likes > 0
   );
 
 
@@ -78,7 +169,7 @@ const ProfilePage = () => {
           <div>
             <h1 className="text-xl font-bold">{user.displayName}</h1>
             <p className="text-sm text-gray-500">
-              {userTweets.length} posts
+              {userTweets.length} <TranslatedText text="posts" />
             </p>
           </div>
         </div>
@@ -87,11 +178,25 @@ const ProfilePage = () => {
       <div className="max-w-2xl mx-auto border-x border-gray-800">
         <div className="relative">
           <div className="relative">
-            <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600" />
+            <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden relative">
+              {user.cover ? (
+                <img src={user.cover} alt="Cover" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full" />
+              )}
+            </div>
+            <input 
+              type="file" 
+              ref={coverInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={(e) => handleImageUpload(e, "cover")} 
+            />
             <Button
               variant="ghost"
               size="sm"
               className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70"
+              onClick={() => coverInputRef.current?.click()}
             >
               <Camera className="h-5 w-5 text-white" />
             </Button>
@@ -106,10 +211,18 @@ const ProfilePage = () => {
                     {user.displayName?.[0] || "@"}
                   </AvatarFallback>
                 </Avatar>
+                <input 
+                  type="file" 
+                  ref={avatarInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={(e) => handleImageUpload(e, "avatar")} 
+                />
                 <Button
                   variant="ghost"
                   size="sm"
                   className="absolute bottom-2 right-2 p-2 rounded-full bg-black/70 hover:bg-black/90"
+                  onClick={() => avatarInputRef.current?.click()}
                 >
                   <Camera className="h-4 w-4 text-white" />
                 </Button>
@@ -132,7 +245,7 @@ const ProfilePage = () => {
                   className="rounded-full border-gray-600 text-white hover:bg-white/10 hover:text-white bg-transparent px-4"
                   onClick={() => setShowEditModal(true)}
                 >
-                  Edit profile
+                  {t("editProfile")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -144,7 +257,7 @@ const ProfilePage = () => {
               </div>
             </div>
             {user?.bio && (
-              <p className="text-white mb-3 leading-relaxed">{user.bio}</p>
+              <p className="text-white mb-3 leading-relaxed">{translatedBio}</p>
             )}
 
             <div className="flex items-center space-x-4 text-gray-400 text-sm mb-3">
@@ -165,7 +278,7 @@ const ProfilePage = () => {
             </div>
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mt-2 grid w-full grid-cols-5 bg-transparent border-b border-gray-800 rounded-none h-auto">
+            <TabsList className="mt-2 grid w-full grid-cols-6 bg-transparent border-b border-gray-800 rounded-none h-auto">
               <TabsTrigger
                 value="posts"
                 className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
@@ -196,17 +309,23 @@ const ProfilePage = () => {
               >
                 Media
               </TabsTrigger>
+            <TabsTrigger
+                value="logins"
+                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+              >
+                <TranslatedText text="Login history" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="posts">
               <div>
                 {loading ? (
                   <div className="py-8 text-center text-gray-500 text-sm">
-                    Loading posts...
+                    <TranslatedText text="Loading posts..." />
                   </div>
                 ) : userTweets.length === 0 ? (
                   <div className="py-8 text-center text-gray-500 text-sm">
-                    No posts yet
+                    <TranslatedText text="No posts yet" />
                   </div>
                 ) : (
                   userTweets.map((tweet: any) => (
@@ -217,26 +336,102 @@ const ProfilePage = () => {
             </TabsContent>
 
             <TabsContent value="replies">
-              <div className="py-8 text-center text-gray-500 text-sm">
-                Replies to other posts will appear here.
+              <div>
+                {replies.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 text-sm">
+                    <TranslatedText text="No replies yet" />
+                  </div>
+                ) : (
+                  replies.map((reply: any) => (
+                    <div key={reply._id} className="p-4 border-b border-gray-800 hover:bg-white/5 transition-colors">
+                      <div className="flex gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={reply.author?.avatar} />
+                          <AvatarFallback>{reply.author?.displayName?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{reply.author?.displayName}</span>
+                            <span className="text-gray-500 text-sm">@{reply.author?.username}</span>
+                            <span className="text-gray-500 text-sm">· {new Date(reply.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-white mt-1">{reply.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="highlights">
-              <div className="py-8 text-center text-gray-500 text-sm">
-                Highlighted posts will appear here.
+              <div>
+                {highlightTweets.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 text-sm">
+                    <TranslatedText text="No highlights yet. Like your own posts to see them here!" />
+                  </div>
+                ) : (
+                  highlightTweets.map((tweet: any) => (
+                    <TweetCard key={tweet._id} tweet={tweet} />
+                  ))
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="articles">
               <div className="py-8 text-center text-gray-500 text-sm">
-                Longer articles or threads will appear here.
+                <TranslatedText text="Longer articles or threads will appear here." />
               </div>
             </TabsContent>
 
             <TabsContent value="media">
-              <div className="py-8 text-center text-gray-500 text-sm">
-                Photos and videos you share will appear here.
+              <div>
+                {mediaTweets.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 text-sm">
+                    <TranslatedText text="No media posts yet" />
+                  </div>
+                ) : (
+                  mediaTweets.map((tweet: any) => (
+                    <TweetCard key={tweet._id} tweet={tweet} />
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="logins">
+              <div className="divide-y divide-gray-800">
+                {loginHistory.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 text-sm">
+                    <TranslatedText text="No login history found." />
+                  </div>
+                ) : (
+                  loginHistory.map((entry, index) => (
+                    <div key={`${entry.loginAt}-${index}`} className="p-4 hover:bg-gray-900/50 transition-colors">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-white font-bold flex items-center gap-2">
+                          <TranslatedText text={entry.browser} /> 
+                          <span className="text-gray-600 font-normal">on</span> 
+                          <TranslatedText text={entry.os} />
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${
+                          entry.success ? "bg-green-900/30 text-green-500" : "bg-red-900/30 text-red-500"
+                        }`}>
+                          {entry.success ? <TranslatedText text="Success" /> : <TranslatedText text="Denied" />}
+                        </span>
+                      </div>
+                      <div className="text-gray-400 text-xs flex flex-wrap gap-x-3 gap-y-1">
+                        <span className="capitalize"><TranslatedText text={entry.deviceType} /></span>
+                        <span>•</span>
+                        <span>IP: {entry.ipAddress || "Unknown"}</span>
+                        <span>•</span>
+                        <span>{new Date(entry.loginAt).toLocaleString()}</span>
+                      </div>
+                      <div className="text-gray-600 text-[10px] mt-1 italic">
+                        <TranslatedText text="Policy" />: <TranslatedText text={entry.policyAction || "standard"} />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </TabsContent>
           </Tabs>
