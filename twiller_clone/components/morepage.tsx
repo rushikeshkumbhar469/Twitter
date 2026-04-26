@@ -154,7 +154,6 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
             </Avatar>
             <div className="flex-1">
               <p className="font-bold text-lg">{user.displayName}</p>
-              <p className="text-gray-500">@{user.username}</p>
             </div>
           </div>
         )}
@@ -271,7 +270,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
             className="w-full rounded-full border-red-600 text-red-500 hover:bg-red-900/20 hover:text-red-400 bg-transparent font-bold flex items-center gap-2 justify-center"
           >
             <LogOut className="h-5 w-5" />
-            <TranslatedText text="Log out" /> @{user?.username}
+            <TranslatedText text="Log out" />
           </Button>
         </div>
 

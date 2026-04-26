@@ -131,16 +131,16 @@ const Feed = () => {
                 </div>
 
                 <Tabs defaultValue="foryou" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-gray-800 rounded-none h-auto">
+                    <TabsList className="flex w-full bg-transparent border-b border-gray-800 rounded-none h-auto p-0">
                         <TabsTrigger
                             value="foryou"
-                            className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                            className="flex-1 h-14 relative flex items-center justify-center text-gray-500 font-medium transition-all hover:bg-white/5 border-none rounded-none data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:h-1 data-[state=active]:after:w-14 data-[state=active]:after:bg-[#1d9bf0] data-[state=active]:after:rounded-full data-[state=active]:shadow-none"
                         >
                             For you
                         </TabsTrigger>
                         <TabsTrigger
                             value="following"
-                            className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                            className="flex-1 h-14 relative flex items-center justify-center text-gray-500 font-medium transition-all hover:bg-white/5 border-none rounded-none data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:h-1 data-[state=active]:after:w-14 data-[state=active]:after:bg-[#1d9bf0] data-[state=active]:after:rounded-full data-[state=active]:shadow-none"
                         >
                             Following
                         </TabsTrigger>

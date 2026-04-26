@@ -17,6 +17,8 @@ import { Button } from "../ui/button";
 import { SocketProvider, useSocket } from "@/context/socketcontext";
 import axiosInstance from "@/lib/axiosinstance";
 
+import BottomNav from "./bottomnav";
+
 // Inner layout that consumes socket for live notification/message badges
 const InnerLayout = ({ children }: any) => {
   const { user } = useAuth();
@@ -26,13 +28,12 @@ const InnerLayout = ({ children }: any) => {
   const [msgUnread, setMsgUnread] = useState(0);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
 
-  // Expose global nav for TweetComposer / elsewhere
+  // ... (previous effects)
   useEffect(() => {
     (window as any).__navigateToSubscription = () => setCurrentPage("subscription");
     return () => { delete (window as any).__navigateToSubscription; };
   }, []);
 
-  // Fetch initial unread notification count
   const fetchNotifCount = useCallback(async () => {
     if (!user?._id) return;
     try {
@@ -44,7 +45,6 @@ const InnerLayout = ({ children }: any) => {
 
   useEffect(() => { fetchNotifCount(); }, [fetchNotifCount]);
 
-  // Real-time: new notification via socket → bump badge
   useEffect(() => {
     if (!socket) return;
     const handler = () => setNotifCount((c) => c + 1);
@@ -52,7 +52,6 @@ const InnerLayout = ({ children }: any) => {
     return () => { socket.off("notification", handler); };
   }, [socket]);
 
-  // Real-time: new message via socket (when NOT on messages page) → bump badge
   useEffect(() => {
     if (!socket) return;
     const handler = (data: any) => {
@@ -64,7 +63,6 @@ const InnerLayout = ({ children }: any) => {
     return () => { socket.off("newMessage", handler); };
   }, [socket, currentPage, user?._id]);
 
-  // Clear notification badge when entering notifications page
   useEffect(() => {
     if (currentPage === "notifications") {
       setNotifCount(0);
@@ -93,26 +91,43 @@ const InnerLayout = ({ children }: any) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
-      <Sidebar
+    <div className="min-h-screen bg-black text-white flex justify-center no-scrollbar">
+      {/* Container for centering content on large screens */}
+      <div className="flex w-full max-w-7xl">
+        <Sidebar
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          onPostClick={() => setIsComposeOpen(true)}
+          notifCount={notifCount}
+          msgUnread={msgUnread}
+        />
+        
+        <main className="flex-1 min-w-0 border-x border-gray-800 pb-20 sm:pb-0 relative">
+          <div className="max-w-[600px] mx-auto w-full">
+            {renderPage()}
+          </div>
+          
+          {/* Floating Action Button (FAB) for Mobile/Small Screens */}
+          <Button
+            className="fixed bottom-24 right-4 h-12 w-12 rounded-full bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white shadow-xl sm:hidden flex items-center justify-center z-40 transition-transform active:scale-90"
+            onClick={() => setIsComposeOpen(true)}
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </main>
+
+        <div className="hidden lg:block">
+          <RightSidebar onNavigate={setCurrentPage} />
+        </div>
+      </div>
+
+      <BottomNav 
         currentPage={currentPage}
         onNavigate={setCurrentPage}
         onPostClick={() => setIsComposeOpen(true)}
         notifCount={notifCount}
         msgUnread={msgUnread}
       />
-      <main className="flex-1 min-w-0 relative">
-        {renderPage()}
-        
-        {/* Floating Action Button (FAB) for Mobile/Small Screens */}
-        <Button
-          className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg lg:hidden flex items-center justify-center z-40"
-          onClick={() => setIsComposeOpen(true)}
-        >
-          <Plus className="h-8 w-8" />
-        </Button>
-      </main>
-      <RightSidebar onNavigate={setCurrentPage} />
 
       {/* Global Compose Modal */}
       {isComposeOpen && (

@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
   Heart, MessageCircle, MoreHorizontal, Repeat2, Share,
-  Bookmark, BookmarkCheck, X, Send, Link2, Trash2
+  Bookmark, BookmarkCheck, X, Send, Link2, Trash2, Copy, Check
 } from "lucide-react";
 import { useAuth } from "@/context/authcontext";
 import axiosInstance from "@/lib/axiosinstance";
@@ -167,13 +167,32 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
   // ─── Share ─────────────────────────────────────────────────────────────────────
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/tweet/${tweet._id}`;
+    const textToCopy = tweet.content;
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = textToCopy;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Copy failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
     }
   };
 
@@ -199,20 +218,22 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
           </Avatar>
           <div className="flex-1 min-w-0">
             {/* Header */}
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-bold text-white hover:underline cursor-pointer">{displayName}</span>
-              {verified && (
-                <div className="flex-shrink-0">
-                  <svg className="h-4 w-4 text-blue-500 fill-blue-500" viewBox="0 0 22 22" aria-label="Verified account">
-                    <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
-                  </svg>
-                </div>
-              )}
-              <span className="text-gray-500">@{tweetAuthor?.username || ""}</span>
-              <span className="text-gray-500">·</span>
-              <span className="text-gray-500 text-sm">
-                {tweet.timestamp && new Date(tweet.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              </span>
+            <div className="flex items-center gap-1 mb-0.5 min-w-0 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="font-bold text-white hover:underline cursor-pointer truncate">{displayName}</span>
+                {verified && (
+                  <div className="flex-shrink-0">
+                    <svg className="h-4 w-4 text-blue-500 fill-blue-500" viewBox="0 0 22 22">
+                      <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 min-w-0 text-gray-500 text-[13px] sm:text-sm">
+                <span className="shrink-0">
+                  {tweet.timestamp && new Date(tweet.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              </div>
 
               {/* More menu */}
               <div className="ml-auto relative">
@@ -224,26 +245,26 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                   <MoreHorizontal className="h-5 w-5 text-gray-500" />
                 </Button>
                 {showMore && (
-                  <div className="absolute right-0 top-8 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-20 min-w-[180px]">
+                  <div className="absolute right-0 top-8 bg-[#16181c] border border-gray-800 rounded-xl shadow-2xl z-20 min-w-[180px] overflow-hidden">
                     <button
                       onClick={handleBookmark}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 rounded-t-xl"
+                      className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 flex items-center gap-3 transition-colors"
                     >
                       {bookmarked
-                        ? <><BookmarkCheck className="h-4 w-4 text-blue-400" /> Remove bookmark</>
+                        ? <><BookmarkCheck className="h-4 w-4 text-[#1d9bf0]" /> Remove bookmark</>
                         : <><Bookmark className="h-4 w-4" /> Bookmark</>
                       }
                     </button>
                     <button
                       onClick={(e) => { handleShare(e); setShowMore(false); }}
-                      className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 ${user?._id === tweetAuthor?._id ? "" : "rounded-b-xl"}`}
+                      className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 flex items-center gap-3 transition-colors"
                     >
                       <Link2 className="h-4 w-4" /> Copy link
                     </button>
                     {user?._id === tweetAuthor?._id && (
                       <button
                         onClick={handleDelete}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-red-900/20 text-red-500 flex items-center gap-2 rounded-b-xl"
+                        className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-900/10 flex items-center gap-3 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" /> Delete post
                       </button>
@@ -322,14 +343,14 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                 }
               </Button>
 
-              {/* Share */}
+              {/* Copy Tweet */}
               <Button
                 variant="ghost" size="sm"
                 className="flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 text-gray-500 hover:text-blue-400 group"
                 onClick={handleShare}
+                title="Copy tweet text"
               >
-                <Link2 className="h-5 w-5 group-hover:text-blue-400" />
-                {copied && <span className="text-xs text-blue-400">Copied!</span>}
+                {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5 group-hover:text-blue-400" />}
               </Button>
             </div>
 

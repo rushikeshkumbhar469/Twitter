@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Home, Search, Bell, Mail, Bookmark, User,
-  MoreHorizontal, Settings2, LogOut, CreditCard,
+  MoreHorizontal, Settings2, LogOut, CreditCard, Plus,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -39,31 +39,31 @@ const Sidebar = ({ currentPage = "home", onNavigate, notifCount = 0, msgUnread =
   ];
 
   return (
-    <div className="flex flex-col h-screen w-64 border-r border-gray-800 bg-black sticky top-0">
+    <div className="flex flex-col h-screen w-0 sm:w-20 xl:w-64 border-r border-gray-800 bg-black sticky top-0 transition-all duration-300 overflow-x-hidden">
       {/* Logo */}
-      <div className="p-4">
+      <div className="p-4 flex justify-center xl:justify-start">
         <TwitterLogo size="lg" classname="text-white" />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-1 overflow-y-auto">
-        <ul className="space-y-1">
+      <nav className="flex-1 px-1 overflow-y-auto no-scrollbar">
+        <ul className="space-y-1 flex flex-col items-center xl:items-start">
           {navigation.map((item) => {
             const isActive = currentPage === item.page;
             return (
-              <li key={item.name}>
+              <li key={item.page} className="w-full flex justify-center xl:justify-start">
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start text-xl py-6 px-4 rounded-full hover:bg-gray-900 ${
+                  className={`xl:w-full justify-center xl:justify-start text-xl py-6 px-4 rounded-full hover:bg-gray-900 ${
                     isActive ? "font-bold" : "font-normal"
-                  } text-white hover:text-white`}
+                  } text-white hover:text-white transition-all`}
                   onClick={() => onNavigate(item.page)}
                 >
-                  <item.icon className="mr-4 h-7 w-7 shrink-0" />
-                  {item.name}
+                  <item.icon className="xl:mr-4 h-7 w-7 shrink-0" />
+                  <span className="hidden xl:inline">{item.name}</span>
                   {/* Badge */}
                   {item.badge != null && item.badge > 0 && (
-                    <span className="ml-2 bg-blue-500 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                    <span className="xl:ml-2 bg-blue-500 text-white text-[10px] xl:text-xs font-bold rounded-full h-4 w-4 xl:h-5 xl:min-w-[20px] px-1 flex items-center justify-center absolute top-2 right-2 xl:static">
                       {item.badge > 99 ? "99+" : item.badge}
                     </span>
                   )}
@@ -74,24 +74,30 @@ const Sidebar = ({ currentPage = "home", onNavigate, notifCount = 0, msgUnread =
         </ul>
 
         {/* Post Button */}
-        <div className="mt-4 px-2">
+        <div className="mt-4 px-4 w-full">
           <Button
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-full text-lg"
+            className="w-full h-10 bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-bold rounded-full text-base hidden xl:flex items-center justify-center shadow-md transition-all active:scale-95"
             onClick={onPostClick}
           >
             {t("post")}
+          </Button>
+          <Button
+            className="w-12 h-12 bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-bold rounded-full flex items-center justify-center xl:hidden mx-auto shadow-sm transition-all active:scale-95"
+            onClick={onPostClick}
+          >
+            <Plus className="h-6 w-6" />
           </Button>
         </div>
       </nav>
 
       {/* User Account Dropdown */}
       {user && (
-        <div className="p-2 border-t border-gray-800">
+        <div className="p-3 border-t border-gray-800">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-3 rounded-full px-3 py-6 hover:bg-gray-900 text-white"
+                className="w-full justify-center xl:justify-start gap-3 rounded-full px-2 xl:px-3 py-6 hover:bg-gray-900 text-white transition-all"
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={user.avatar} />
@@ -99,11 +105,10 @@ const Sidebar = ({ currentPage = "home", onNavigate, notifCount = 0, msgUnread =
                     {user.displayName?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 text-left min-w-0">
+                <div className="hidden xl:flex flex-1 text-left min-w-0 flex-col">
                   <div className="font-bold text-sm truncate">{user.displayName}</div>
-                  <div className="text-gray-500 text-sm truncate">@{user.username}</div>
                 </div>
-                <MoreHorizontal className="h-5 w-5 text-gray-400 shrink-0" />
+                <MoreHorizontal className="hidden xl:block h-5 w-5 text-gray-400 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-black border-gray-700 text-white w-56" side="top" align="start">

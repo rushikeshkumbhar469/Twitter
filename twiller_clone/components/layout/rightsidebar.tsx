@@ -269,7 +269,7 @@ const RightSidebar = ({ onNavigate }: { onNavigate?: (page: string) => void }) =
               <T>Subscribe to unlock more tweets and premium features.</T>
             </CardDescription>
             <Button
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full py-2"
+              className="w-full bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white font-bold rounded-full h-11 flex items-center justify-center shadow-sm transition-all active:scale-95"
               onClick={() => setShowModal(true)}
             >
               {t("subscribe")}

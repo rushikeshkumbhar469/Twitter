@@ -103,7 +103,6 @@ export default function ExplorePage({ onNavigate }: { onNavigate: (page: string)
                       </Avatar>
                       <div>
                         <p className="font-bold text-white">{u.displayName}</p>
-                        <p className="text-gray-500 text-sm">@{u.username}</p>
                         {u.bio && <p className="text-gray-400 text-sm mt-1 max-w-xs truncate">{u.bio}</p>}
                         <p className="text-gray-600 text-xs mt-0.5">
                           {u.followers?.length || 0} followers · {u.following?.length || 0} following

@@ -165,7 +165,6 @@ export default function MessagesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white truncate">{contact.displayName}</p>
-                  <p className="text-gray-500 text-sm truncate">@{contact.username}</p>
                 </div>
               </div>
             ))}
@@ -196,7 +195,6 @@ export default function MessagesPage() {
               </Avatar>
               <div>
                 <p className="font-bold text-white">{selected.displayName}</p>
-                <p className="text-gray-500 text-sm">@{selected.username}</p>
               </div>
             </div>
 

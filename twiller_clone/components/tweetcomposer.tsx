@@ -6,7 +6,7 @@ import { Card, CardContent } from "./ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { BarChart3, Calendar, Globe, Image, MapPin, Smile, Mic, Square, Trash2, Crown } from "lucide-react";
+import { Copy, Check, Calendar, Globe, Image, MapPin, Smile, Mic, Square, Trash2, Crown } from "lucide-react";
 import { Separator } from "./ui/separator";
 import axios from "axios";
 import axiosInstance from "@/lib/axiosinstance";
@@ -38,6 +38,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     // Subscription state
     const [subStatus, setSubStatus] = useState<any>(null);
     const [tweetLimitError, setTweetLimitError] = useState("");
+    const [copied, setCopied] = useState(false);
 
     const maxlength = 200;
 
@@ -52,6 +53,47 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     useEffect(() => {
         fetchSubStatus();
     }, [fetchSubStatus]);
+
+    const handleCopy = async () => {
+        const textToCopy = content.trim();
+        if (!textToCopy) return;
+
+        try {
+            // Modern Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(textToCopy);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } else {
+                throw new Error('Clipboard API unavailable');
+            }
+        } catch (err) {
+            // Fallback for non-secure contexts or older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            
+            // Ensure the textarea is not visible but part of the DOM
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                }
+            } catch (fallbackErr) {
+                console.error('Copy failed:', fallbackErr);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+    };
 
     const startRecording = async () => {
         try {
@@ -267,12 +309,12 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                 </div>
                             )}
                             <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
-                                <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+                                <div className="flex items-center gap-0 sm:gap-1 overflow-x-auto no-scrollbar">
                                     <label
                                         htmlFor="tweetImage"
-                                        className="p-1.5 rounded-full hover:bg-blue-900/20 cursor-pointer text-blue-400 transition-colors"
+                                        className="p-2 rounded-full hover:bg-blue-900/20 cursor-pointer text-blue-400 transition-colors"
                                     >
-                                        <Image className="h-5 w-5" />
+                                        <Image className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -287,24 +329,22 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className={`p-1.5 h-8 w-8 rounded-full transition-colors shrink-0 ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60" : "hover:bg-blue-900/20 text-blue-400"}`}
+                                        className={`p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full transition-colors shrink-0 ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60" : "hover:bg-blue-900/20 text-blue-400"}`}
                                         onClick={isRecording ? stopRecording : startRecording}
                                         disabled={isLoading || !!audioBlob}
                                     >
-                                        {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
+                                        {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
                                     </Button>
 
-                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
-                                        <BarChart3 className="h-5 w-5" />
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
-                                        <Smile className="h-5 w-5" />
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
-                                        <Calendar className="h-5 w-5" />
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="sm" className="p-1.5 h-8 w-8 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0">
-                                        <MapPin className="h-5 w-5" />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0"
+                                        onClick={handleCopy}
+                                        title="Copy tweet"
+                                    >
+                                        {copied ? <Check className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-green-500" /> : <Copy className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
                                     </Button>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -359,7 +399,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                                 <Button
                                                     type="submit"
                                                     disabled={(!content.trim() && !imageurl && !audioBlob) || isoverlimit || isLoading || isRecording}
-                                                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-full px-5 h-8 text-sm transition-all"
+                                                    className="bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:bg-[#1d9bf0]/50 disabled:text-white/50 text-white font-bold rounded-full px-5 h-8.5 transition-all shadow-sm active:scale-95 text-sm"
                                                 >
                                                     <TranslatedText text="Post" />
                                                 </Button>
@@ -369,7 +409,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                             <Button
                                                 type="submit"
                                                 disabled={(!content.trim() && !imageurl && !audioBlob) || isoverlimit || isLoading || isRecording}
-                                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-full px-5 h-8 text-sm transition-all"
+                                                className="bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:bg-[#1d9bf0]/50 disabled:text-white/50 text-white font-bold rounded-full px-5 h-8.5 transition-all shadow-sm active:scale-95 text-sm"
                                             >
                                                 <TranslatedText text="Post" />
                                             </Button>

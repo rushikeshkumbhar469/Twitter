@@ -175,10 +175,10 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto border-x border-gray-800">
+      <div className="max-w-2xl mx-auto border-x border-gray-800 bg-black min-h-screen">
         <div className="relative">
           <div className="relative">
-            <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden relative">
+            <div className="h-32 sm:h-48 bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden relative">
               {user.cover ? (
                 <img src={user.cover} alt="Cover" className="w-full h-full object-cover" />
               ) : (
@@ -195,14 +195,14 @@ const ProfilePage = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70"
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
               onClick={() => coverInputRef.current?.click()}
             >
               <Camera className="h-5 w-5 text-white" />
             </Button>
-            <div className="absolute -bottom-16 left-4">
+            <div className="absolute -bottom-12 sm:-bottom-16 left-4">
               <div className="relative">
-                <Avatar className="h-32 w-32 border-4 border-black">
+                <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-black">
                   <AvatarImage
                     src={user.avatar}
                     alt={user.displayName}
@@ -221,28 +221,27 @@ const ProfilePage = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute bottom-2 right-2 p-2 rounded-full bg-black/70 hover:bg-black/90"
+                  className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-1.5 sm:p-2 rounded-full bg-black/70 hover:bg-black/90 transition-colors"
                   onClick={() => avatarInputRef.current?.click()}
                 >
-                  <Camera className="h-4 w-4 text-white" />
+                  <Camera className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </Button>
               </div>
             </div>
           </div>
 
-          <div className="px-4 pb-4 mt-20">
+          <div className="px-4 pb-4 mt-14 sm:mt-20">
             <div className="flex items-start justify-between mb-3">
-              <div>
-                <h1 className="text-2xl font-bold text-white">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
                   {user.displayName}
                 </h1>
-                <p className="text-gray-400">@{user.username}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full border-gray-600 text-white hover:bg-white/10 hover:text-white bg-transparent px-4"
+                  className="rounded-full border-gray-600 text-white hover:bg-white/10 hover:text-white bg-transparent px-3 sm:px-4 text-xs sm:text-sm h-8 sm:h-9"
                   onClick={() => setShowEditModal(true)}
                 >
                   {t("editProfile")}
@@ -250,70 +249,70 @@ const ProfilePage = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full hover:bg-gray-900"
+                  className="rounded-full hover:bg-gray-900 h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  <MoreHorizontal className="h-5 w-5 text-gray-400" />
+                  <MoreHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 </Button>
               </div>
             </div>
             {user?.bio && (
-              <p className="text-white mb-3 leading-relaxed">{translatedBio}</p>
+              <p className="text-white mb-3 leading-relaxed text-sm sm:text-base">{translatedBio}</p>
             )}
 
-            <div className="flex items-center space-x-4 text-gray-400 text-sm mb-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-400 text-[13px] sm:text-sm mb-3">
               <div className="flex items-center space-x-1">
                 <MapPin className="h-4 w-4" />
                 <span>{user?.location || "Earth"}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Link2Icon className="h-4 w-4" />
-                <span className="text-blue-400">
+                <span className="text-blue-400 truncate max-w-[150px]">
                   {user?.website || "example.com"}
                 </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Calendar className="h-4 w-4" />
-                <span>Joined {""} {user?.joinedDate && new Date(user.joinedDate).toLocaleDateString("en-us", { month: "long", year: "numeric" })}</span>
+                <span>Joined {user?.joinedDate && new Date(user.joinedDate).toLocaleDateString("en-us", { month: "long", year: "numeric" })}</span>
               </div>
             </div>
           </div>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mt-2 grid w-full grid-cols-6 bg-transparent border-b border-gray-800 rounded-none h-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mt-2 grid w-full grid-cols-6 bg-transparent border-b border-gray-800 rounded-none h-auto p-0 overflow-x-auto no-scrollbar">
               <TabsTrigger
                 value="posts"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
                 Posts
               </TabsTrigger>
               <TabsTrigger
                 value="replies"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
                 Replies
               </TabsTrigger>
               <TabsTrigger
                 value="highlights"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
                 Highlights
               </TabsTrigger>
               <TabsTrigger
                 value="articles"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
                 Articles
               </TabsTrigger>
               <TabsTrigger
                 value="media"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
                 Media
               </TabsTrigger>
-            <TabsTrigger
+              <TabsTrigger
                 value="logins"
-                className="text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:rounded-none"
+                className="text-xs sm:text-sm text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:rounded-none py-3 px-1"
               >
-                <TranslatedText text="Login history" />
+                <TranslatedText text="Logins" />
               </TabsTrigger>
             </TabsList>
 
@@ -329,7 +328,7 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   userTweets.map((tweet: any) => (
-                    <TweetCard key={tweet.id} tweet={tweet} />
+                    <TweetCard key={tweet._id || tweet.id} tweet={tweet} />
                   ))
                 )}
               </div>

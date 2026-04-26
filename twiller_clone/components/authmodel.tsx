@@ -42,6 +42,13 @@ export default function AuthModel({
   const [otpCode, setOtpCode] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
 
+  const maskEmail = (email: string) => {
+    if (!email || !email.includes("@")) return email;
+    const [name, domain] = email.split("@");
+    if (name.length <= 2) return `${name[0]}***@${domain}`;
+    return `${name[0]}***${name[name.length - 1]}@${domain}`;
+  };
+
   const [error, setError] = useState<Record<string, string>>({});
 
   if (!isopen) return null;
@@ -112,7 +119,7 @@ export default function AuthModel({
         if (!result.success) {
           if (result.requiresOtp) {
             setShowLoginOtpStep(true);
-            setError({ general: result.error || "OTP sent to your email. Please verify to continue." });
+            setError({ general: result.error || `OTP sent to ${maskEmail(formData.email)}. Please verify to continue.` });
             return;
           }
           setError({ general: result.error || "Invalid email or password" });
@@ -403,7 +410,7 @@ export default function AuthModel({
                   <p className="text-gray-300">
                     We've sent a verification code to{" "}
                     <span className="font-bold text-white">
-                      {formData.language === "fr" ? formData.email : formData.phone}
+                      {formData.language === "fr" ? maskEmail(formData.email) : formData.phone}
                     </span>
                   </p>
                 </div>
@@ -534,7 +541,7 @@ export default function AuthModel({
               <div className="space-y-6">
                 <div className="text-center">
                   <p className="text-gray-300">
-                    Enter OTP sent to <span className="font-bold text-white">{formData.email}</span>
+                    Enter OTP sent to <span className="font-bold text-white">{maskEmail(formData.email)}</span>
                   </p>
                 </div>
                 <div className="space-y-2">
