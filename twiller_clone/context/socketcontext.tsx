@@ -18,10 +18,32 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!user?._id) return;
-    const s = io(BACKEND, { query: { userId: user._id }, transports: ["websocket"] });
+
+    const s = io(BACKEND, {
+      path: "/socket.io",
+      auth: { userId: user._id },
+      transports: ["polling", "websocket"],
+      reconnection: true,
+      secure: false,
+      withCredentials: true,
+    });
+
+    s.on("connect_error", (err) => {
+      console.error("Socket connect_error:", err);
+    });
+
+    s.on("connect", () => {
+      console.log("Socket connected", s.id);
+    });
+
     socketRef.current = s;
     setSocket(s);
-    return () => { s.disconnect(); };
+
+    return () => {
+      s.off("connect_error");
+      s.off("connect");
+      s.disconnect();
+    };
   }, [user?._id]);
 
   return (

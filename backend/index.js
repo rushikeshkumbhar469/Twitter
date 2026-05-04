@@ -24,16 +24,27 @@ const httpServer = createServer(app);
 
 // ─── Socket.IO Setup ─────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
+  path: "/socket.io",
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://192.168.23.1:3000",
+      "http://192.168.23.1:3001",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 // Map userId → socketId for targeted notifications
 const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
-  const userId = socket.handshake.query.userId;
+  const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
+  console.log("Socket connection attempt", { userId, socketId: socket.id });
   if (userId) {
-    onlineUsers.set(userId, socket.id);
+    onlineUsers.set(String(userId), socket.id);
     io.emit("onlineUsers", Array.from(onlineUsers.keys()));
   }
 
@@ -503,6 +514,37 @@ app.post("/register", async (req, res) => {
     return res.status(201).send(newUser);
   } catch (error) {
     return res.status(400).send({ message: error.message, name: error.name, code: error.code, keyValue: error.keyValue });
+  }
+});
+
+app.get("/loggedinuser", async (req, res) => {
+  try {
+    const { email, _id, q } = req.query;
+    if (q) {
+      const search = new RegExp(String(q), "i");
+      const users = await User.find({
+        $or: [
+          { username: search },
+          { displayName: search },
+          { email: search },
+        ],
+      }).limit(50);
+      return res.status(200).send({ users });
+    }
+
+    if (email) {
+      const user = await User.findOne({ email: String(email) });
+      return res.status(200).send(user);
+    }
+
+    if (_id) {
+      const user = await User.findById(String(_id));
+      return res.status(200).send(user);
+    }
+
+    return res.status(400).send({ error: "email, _id or q required" });
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
   }
 });
 

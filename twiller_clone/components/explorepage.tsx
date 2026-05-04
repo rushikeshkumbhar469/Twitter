@@ -20,7 +20,7 @@ const TRENDING = [
 ];
 
 export default function ExplorePage({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { user } = useAuth();
+  const { user, setuser } = useAuth();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ tweets: any[]; users: any[] }>({ tweets: [], users: [] });
@@ -54,8 +54,28 @@ export default function ExplorePage({ onNavigate }: { onNavigate: (page: string)
     try {
       const res = await axiosInstance.post(`/user/${targetId}/follow`, { currentUserId: user._id });
       setFollowingMap((prev) => ({ ...prev, [targetId]: res.data.isFollowing }));
-    } catch (e) { console.error(e); }
+
+      const updatedFollowing = Array.isArray(res.data.following) ? res.data.following.map(String) : [];
+      setuser((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, following: updatedFollowing };
+        localStorage.setItem("twitter-user", JSON.stringify(next));
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    const followingSet = new Set((user.following || []).map(String));
+    const nextMap: Record<string, boolean> = {};
+    results.users.forEach((u) => {
+      nextMap[u._id] = followingSet.has(String(u._id));
+    });
+    setFollowingMap(nextMap);
+  }, [user, results.users]);
 
   const hasResults = results.tweets.length > 0 || results.users.length > 0;
 

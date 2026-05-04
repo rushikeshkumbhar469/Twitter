@@ -5,6 +5,7 @@ import TweetCard from "./tweetcard";
 import LoadingSpinner from "./loading-spinner";
 import TweetComposer from "./tweetcomposer";
 import axiosInstance from "@/lib/axiosinstance";
+import { useAuth } from "@/context/authcontext";
 export type Tweet = {
     id: number;
     user: {
@@ -104,7 +105,9 @@ const tweets: Tweet[] = [
 ];
 
 const Feed = () => {
+    const { user } = useAuth();
     const [tweets, setTweets] = useState<any>([]);
+    const [activeTab, setActiveTab] = useState<string>("foryou");
     const [loading, setLoading] = useState(false);
     const fetchTweets = async () => {
         try {
@@ -130,7 +133,7 @@ const Feed = () => {
                     <h1 className="text-xl font-bold text-white">Home</h1>
                 </div>
 
-                <Tabs defaultValue="foryou" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="flex w-full bg-transparent border-b border-gray-800 rounded-none h-auto p-0">
                         <TabsTrigger
                             value="foryou"
@@ -159,7 +162,24 @@ const Feed = () => {
                         </CardContent>
                     </Card>
                 ) : (
-                    tweets.map((tweet: any) => <TweetCard key={tweet._id} tweet={tweet} />)
+                    (() => {
+                      const followingSet = new Set((user?.following || []).map(String));
+                      const displayTweets = activeTab === "following"
+                        ? tweets.filter((tweet: any) => followingSet.has(String(tweet.author?._id)))
+                        : tweets;
+
+                      if (activeTab === "following" && displayTweets.length === 0) {
+                        return (
+                          <Card className="bg-black border-none">
+                            <CardContent className="py-12 text-center text-gray-400">
+                              <p>Follow people to see their latest posts here.</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+
+                      return displayTweets.map((tweet: any) => <TweetCard key={tweet._id} tweet={tweet} />);
+                    })()
                 )}
             </div>
         </div>

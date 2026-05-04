@@ -28,6 +28,8 @@ interface User {
   website?: string;
   joinedDate: string;
   email: string;
+  followers?: string[];
+  following?: string[];
   notificationsEnabled?: boolean;
   language?: string;
   phone?: string;
