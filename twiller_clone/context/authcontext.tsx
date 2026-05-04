@@ -114,6 +114,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // First, try to restore user from localStorage on mount
+    const savedUser = localStorage.getItem("twitter-user");
+    if (savedUser) {
+      try {
+        setuser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error("Failed to parse saved user:", error);
+      }
+    }
+
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
       // Skip if an explicit login() call is managing state right now
       if (isLoggingInRef.current) return;
@@ -128,9 +138,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setIsLoading(false);
         } catch (error) {
-          console.log(error);
-          logout();
+          console.log("Failed to fetch user from backend:", error);
+          // If backend request fails, keep the user from localStorage instead of logging out
+          if (!savedUser) {
+            logout();
+          }
+          setIsLoading(false);
         }
+      } else if (!firebaseuser && !savedUser) {
+        // Only logout if there's no Firebase user AND no saved user
+        logout();
       }
     });
     return () => unsubcribe();

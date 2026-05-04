@@ -39,7 +39,7 @@ const Sidebar = ({ currentPage = "home", onNavigate, notifCount = 0, msgUnread =
   ];
 
   return (
-    <div className="flex flex-col h-screen w-0 sm:w-20 xl:w-64 border-r border-gray-800 bg-black sticky top-0 transition-all duration-300 overflow-x-hidden">
+    <div className="hidden md:flex flex-col h-screen w-20 xl:w-64 border-r border-gray-800 bg-black sticky top-0 transition-all duration-300 overflow-x-hidden">
       {/* Logo */}
       <div className="p-4 flex justify-center xl:justify-start">
         <TwitterLogo size="lg" classname="text-white" />

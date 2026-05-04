@@ -30,28 +30,59 @@ const BottomNav = ({
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-gray-800 flex items-center justify-around py-3 px-4 z-50 sm:hidden">
-      {navItems.map((item) => {
-        const isActive = currentPage === item.page;
-        return (
-          <button
-            key={item.page}
-            onClick={() => onNavigate(item.page)}
-            className="relative p-2 rounded-full hover:bg-gray-900 transition-colors"
-          >
-            <item.icon 
-              className={`h-[22px] w-[22px] ${isActive ? "text-white fill-white" : "text-gray-500"}`} 
-            />
-            {item.badge != null && item.badge > 0 && (
-              <span className="absolute top-1 right-1 bg-[#1d9bf0] text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
-                {item.badge > 99 ? "99+" : item.badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
-      
-      {/* Post FAB on mobile is already in MainLayout, but we can put it here if we want a different style */}
+    <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-gray-800 flex items-center justify-center gap-8 py-3 px-4 z-50 xl:hidden">
+      {/* Left Navigation Items */}
+      <div className="flex items-center justify-center gap-6 flex-1">
+        {navItems.slice(0, 2).map((item) => {
+          const isActive = currentPage === item.page;
+          return (
+            <button
+              key={item.page}
+              onClick={() => onNavigate(item.page)}
+              className="relative p-2 rounded-full hover:bg-gray-900 transition-colors"
+            >
+              <div className="relative">
+                <item.icon 
+                  className={`h-[22px] w-[22px] ${isActive ? "text-white fill-white" : "text-gray-500"}`} 
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Center Post Button */}
+      <Button
+        onClick={onPostClick}
+        className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white rounded-full h-12 w-12 p-0 flex items-center justify-center flex-shrink-0 shadow-lg transition-all active:scale-90"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      {/* Right Navigation Items */}
+      <div className="flex items-center justify-center gap-6 flex-1">
+        {navItems.slice(2, 4).map((item) => {
+          const isActive = currentPage === item.page;
+          return (
+            <button
+              key={item.page}
+              onClick={() => onNavigate(item.page)}
+              className="relative p-2 rounded-full hover:bg-gray-900 transition-colors"
+            >
+              <div className="relative">
+                <item.icon 
+                  className={`h-[22px] w-[22px] ${isActive ? "text-white fill-white" : "text-gray-500"}`} 
+                />
+                {item.badge != null && item.badge > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#1d9bf0] text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

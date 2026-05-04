@@ -298,10 +298,11 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
               {/* Comment */}
               <Button
                 variant="ghost" size="sm"
-                className="flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 text-gray-500 hover:text-blue-400 group"
+                className="flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 text-gray-500 hover:text-[#1d9bf0] group"
                 onClick={toggleComments}
+                title="Reply"
               >
-                <MessageCircle className="h-5 w-5 group-hover:text-blue-400" />
+                <MessageCircle className="h-5 w-5" />
                 <span className="text-sm">{formatNumber(commentCount)}</span>
               </Button>
 
@@ -312,8 +313,9 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                   retweeted ? "text-emerald-500" : "text-gray-500 hover:text-emerald-400"
                 }`}
                 onClick={handleRetweet}
+                title={retweeted ? "Undo repost" : "Repost"}
               >
-                <Repeat2 className={`h-5 w-5 ${retweeted ? "text-emerald-500" : "group-hover:text-emerald-400"}`} />
+                <Repeat2 className={`h-5 w-5 ${retweeted ? "text-emerald-500" : ""}`} />
                 <span className="text-sm">{formatNumber(retweets)}</span>
               </Button>
 
@@ -324,8 +326,9 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                   liked ? "text-red-500" : "text-gray-500 hover:text-red-400"
                 }`}
                 onClick={handleLike}
+                title={liked ? "Unlike" : "Like"}
               >
-                <Heart className={`h-5 w-5 ${liked ? "text-red-500 fill-red-500" : "group-hover:text-red-400"}`} />
+                <Heart className={`h-5 w-5 ${liked ? "text-red-500 fill-red-500" : ""}`} />
                 <span className="text-sm">{formatNumber(likes)}</span>
               </Button>
 
@@ -333,24 +336,25 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
               <Button
                 variant="ghost" size="sm"
                 className={`flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 group ${
-                  bookmarked ? "text-blue-400" : "text-gray-500 hover:text-blue-400"
+                  bookmarked ? "text-[#1d9bf0]" : "text-gray-500 hover:text-[#1d9bf0]"
                 }`}
                 onClick={handleBookmark}
+                title={bookmarked ? "Remove bookmark" : "Bookmark"}
               >
                 {bookmarked
-                  ? <BookmarkCheck className="h-5 w-5 text-blue-400" />
-                  : <Bookmark className="h-5 w-5 group-hover:text-blue-400" />
+                  ? <BookmarkCheck className="h-5 w-5" />
+                  : <Bookmark className="h-5 w-5" />
                 }
               </Button>
 
               {/* Copy Tweet */}
               <Button
                 variant="ghost" size="sm"
-                className="flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 text-gray-500 hover:text-blue-400 group"
+                className="flex items-center space-x-2 p-2 rounded-full hover:bg-blue-900/20 text-gray-500 hover:text-[#1d9bf0]"
                 onClick={handleShare}
                 title="Copy tweet text"
               >
-                {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5 group-hover:text-blue-400" />}
+                {copied ? <Check className="h-5 w-5 text-green-400" /> : <Copy className="h-5 w-5" />}
               </Button>
             </div>
 

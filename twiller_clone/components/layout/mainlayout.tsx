@@ -102,21 +102,13 @@ const InnerLayout = ({ children }: any) => {
           msgUnread={msgUnread}
         />
         
-        <main className="flex-1 min-w-0 border-x border-gray-800 pb-20 sm:pb-0 relative">
+        <main className="flex-1 min-w-0 border-x border-gray-800 pb-20 md:pb-0 relative">
           <div className="max-w-[600px] mx-auto w-full">
             {renderPage()}
           </div>
-          
-          {/* Floating Action Button (FAB) for Mobile/Small Screens */}
-          <Button
-            className="fixed bottom-24 right-4 h-12 w-12 rounded-full bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white shadow-xl sm:hidden flex items-center justify-center z-40 transition-transform active:scale-90"
-            onClick={() => setIsComposeOpen(true)}
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
         </main>
 
-        <div className="hidden lg:block">
+        <div className="hidden xl:flex w-80 flex-col">
           <RightSidebar onNavigate={setCurrentPage} />
         </div>
       </div>
@@ -147,7 +139,6 @@ const InnerLayout = ({ children }: any) => {
               <TweetComposer 
                 onTweetPosted={() => {
                   setIsComposeOpen(false);
-                  window.location.reload(); 
                 }} 
               />
             </div>

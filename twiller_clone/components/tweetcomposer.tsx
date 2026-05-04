@@ -19,6 +19,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
     const [content, setcontent] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [imageurl, setImageurl] = useState("");
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     // Audio State
     const [isRecording, setIsRecording] = useState(false);
@@ -227,6 +228,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
             onTweetPosted(res.data);
             setcontent("");
             setImageurl("");
+            setImagePreview(null);
             if (!uploadedAudioUrl) deleteRecording();
             // Refresh subscription count after posting
             fetchSubStatus();
@@ -252,8 +254,13 @@ const TweetComposer = ({ onTweetPosted }: any) => {
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
-        setIsLoading(true);
         const image = e.target.files[0];
+        
+        // Immediately show local preview
+        const localPreviewUrl = URL.createObjectURL(image);
+        setImagePreview(localPreviewUrl);
+        
+        setIsLoading(true);
         const formdataimg = new FormData();
         formdataimg.set("image", image);
         try {
@@ -268,6 +275,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
             }
         } catch (error) {
             console.log(error);
+            setImagePreview(null);
         } finally {
             setIsLoading(false);
         }
@@ -292,6 +300,30 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                 className="bg-transparent border-none text-lg text-white placeholder-gray-500 resize-none min-h-[100px] focus-visible:ring-0 focus-visible:ring-offset-0 p-0 mb-2"
                             />
 
+                            {/* Image Preview */}
+                            {imagePreview && (
+                                <div className="relative mt-2 mb-3 rounded-xl overflow-hidden border border-gray-700">
+                                    {isLoading && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                                            <div className="w-5 h-5 border-2 border-[#1d9bf0] border-t-transparent rounded-full animate-spin" />
+                                            <span className="text-xs text-gray-300 ml-2">Uploading...</span>
+                                        </div>
+                                    )}
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        className="max-h-48 w-full object-cover rounded-xl"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute top-2 right-2 bg-black/70 hover:bg-black text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold"
+                                        onClick={() => { setImageurl(""); setImagePreview(null); }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Tweet limit error */}
                             {tweetLimitError && (
                                 <div className="mb-3 flex items-start gap-2 bg-red-950/30 border border-red-800/50 rounded-xl px-3 py-2 animate-in fade-in slide-in-from-top-1">
@@ -312,7 +344,8 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                 <div className="flex items-center gap-0 sm:gap-1 overflow-x-auto no-scrollbar">
                                     <label
                                         htmlFor="tweetImage"
-                                        className="p-2 rounded-full hover:bg-blue-900/20 cursor-pointer text-blue-400 transition-colors"
+                                        className="p-2 rounded-full hover:bg-blue-500/20 cursor-pointer text-[#1d9bf0] transition-colors flex items-center justify-center"
+                                        title="Add image"
                                     >
                                         <Image className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                         <input
@@ -329,9 +362,10 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className={`p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full transition-colors shrink-0 ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60" : "hover:bg-blue-900/20 text-blue-400"}`}
+                                        className={`p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full transition-colors shrink-0 ${isRecording ? "bg-red-900/40 text-red-500 hover:bg-red-900/60 hover:text-red-400" : "hover:bg-blue-500/20 text-[#1d9bf0] hover:text-[#1d9bf0]"}`}
                                         onClick={isRecording ? stopRecording : startRecording}
                                         disabled={isLoading || !!audioBlob}
+                                        title={isRecording ? "Stop recording" : "Record audio"}
                                     >
                                         {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
                                     </Button>
@@ -340,11 +374,11 @@ const TweetComposer = ({ onTweetPosted }: any) => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className="p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full hover:bg-blue-900/20 text-blue-400 shrink-0"
+                                        className="p-2 h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full hover:bg-blue-500/20 text-[#1d9bf0] hover:text-[#1d9bf0] shrink-0"
                                         onClick={handleCopy}
-                                        title="Copy tweet"
+                                        title="Copy tweet text"
                                     >
-                                        {copied ? <Check className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-green-500" /> : <Copy className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
+                                        {copied ? <Check className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-green-400" /> : <Copy className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
                                     </Button>
                                 </div>
                                 <div className="flex items-center gap-2">

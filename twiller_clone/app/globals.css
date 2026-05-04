@@ -140,4 +140,23 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Tablet and iPad responsiveness */
+  @media (min-width: 640px) and (max-width: 1024px) {
+    main {
+      @apply px-2;
+    }
+  }
+
+  /* Ensure proper spacing on all devices */
+  [role="main"] {
+    @apply w-full;
+  }
+
+  /* Better content centering on tablets/iPads */
+  @screen md {
+    .max-w-content {
+      @apply max-w-2xl;
+    }
+  }
 }
