@@ -8,7 +8,7 @@ import axiosInstance from "@/lib/axiosinstance";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Send, MessageSquare, ArrowLeft } from "lucide-react";
+import { Send, MessageSquare, ArrowLeft, MoreHorizontal, Trash2 } from "lucide-react";
 import LoadingSpinner from "./loading-spinner";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 
@@ -17,8 +17,8 @@ function MessageBubble({ msg, isMe }: { msg: any; isMe: boolean }) {
   const { translated, loading } = useAutoTranslate(msg.text || "");
   return (
     <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm ${isMe
-        ? "bg-blue-500 text-white rounded-br-sm"
-        : "bg-gray-800 text-white rounded-bl-sm"
+      ? "bg-blue-500 text-white rounded-br-sm"
+      : "bg-gray-800 text-white rounded-bl-sm"
       }`}>
       <p className={`transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}>
         {translated}
@@ -41,6 +41,9 @@ export default function MessagesPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [showMenu, setShowMenu] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch followed users as message contacts
@@ -66,6 +69,20 @@ export default function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, selected]);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-menu-trigger]")) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [showMenu]);
 
   // Socket listeners
   useEffect(() => {
@@ -122,6 +139,33 @@ export default function MessagesPage() {
       [convId]: [...(prev[convId] || []), { ...msg, timestamp: new Date().toISOString() }],
     }));
     setInput("");
+  };
+
+  const handleClearChat = () => {
+    if (!selected) return;
+    setClearError(null);
+    setShowMenu(false);
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearChat = async () => {
+    if (!selected || !user?._id) return;
+    try {
+      const convId = getConvId(selected._id);
+      await axiosInstance.delete(`/messages/${encodeURIComponent(convId)}`, {
+        data: { userId: user._id },
+      });
+      setMessages((prev) => ({ ...prev, [convId]: [] }));
+      setShowClearConfirm(false);
+    } catch (err: any) {
+      console.error("Failed to clear chat:", err);
+      setClearError(err?.response?.data?.error || "Failed to clear chat. Please try again.");
+    }
+  };
+
+  const cancelClearChat = () => {
+    setShowClearConfirm(false);
+    setClearError(null);
   };
 
   const convId = selected ? getConvId(selected._id) : "";
@@ -195,18 +239,76 @@ export default function MessagesPage() {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="sticky top-0 bg-black/90 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center gap-3 z-10">
-              <Button variant="ghost" size="icon" className="md:hidden rounded-full" onClick={() => setSelected(null)}>
-                <ArrowLeft className="h-5 w-5 text-white" />
-              </Button>
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={selected.avatar || undefined} />
-                <AvatarFallback className="bg-gray-700 text-white">{selected.displayName?.[0]}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-bold text-white">{selected.displayName}</p>
+            <div className="sticky top-0 bg-black/90 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center justify-between gap-3 z-10">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="md:hidden rounded-full" onClick={() => setSelected(null)}>
+                  <ArrowLeft className="h-5 w-5 text-white" />
+                </Button>
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={selected.avatar || undefined} />
+                  <AvatarFallback className="bg-gray-700 text-white">{selected.displayName?.[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-bold text-white">{selected.displayName}</p>
+                </div>
+              </div>
+
+              {/* Three-dot menu */}
+              <div className="relative" data-menu-trigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-gray-900"
+                  onClick={() => setShowMenu(!showMenu)}
+                  data-menu-trigger
+                >
+                  <MoreHorizontal className="h-5 w-5 text-white" />
+                </Button>
+
+                {/* Dropdown menu */}
+                {showMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-20" data-menu-trigger>
+                    <button
+                      onClick={handleClearChat}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 text-red-400 hover:text-red-300 transition-colors first:rounded-t-lg last:rounded-b-lg text-sm"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Clear Chat
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Clear chat confirmation modal */}
+            {showClearConfirm && (
+              <div className="fixed inset-0 z-30 bg-black/70 flex items-center justify-center px-4">
+                <div className="w-full max-w-md rounded-3xl bg-gray-950 border border-gray-800 p-6 text-white shadow-2xl">
+                  <h2 className="text-lg font-semibold mb-3">Confirm clear chat</h2>
+                  <p className="text-sm text-gray-300 mb-4">
+                    This will clear all messages in this conversation for your account only. This action cannot be undone.
+                  </p>
+                  {clearError && (
+                    <p className="text-sm text-red-400 mb-4">{clearError}</p>
+                  )}
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      className="border-gray-400 text-black hover:bg-gray-700 hover:text-white hover:border-gray-300"
+                      onClick={cancelClearChat}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                      onClick={confirmClearChat}
+                    >
+                      Clear Chat
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

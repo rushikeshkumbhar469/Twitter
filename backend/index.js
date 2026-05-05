@@ -627,6 +627,20 @@ app.get("/messages", async (req, res) => {
   }
 });
 
+app.delete("/messages/:conversationId", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { userId } = req.body;
+    if (!conversationId) return res.status(400).send({ error: "conversationId required" });
+    if (!userId) return res.status(400).send({ error: "userId required" });
+
+    const deleted = await Message.deleteMany({ conversationId: String(conversationId) });
+    return res.status(200).send({ message: "Conversation cleared successfully", deletedCount: deleted.deletedCount || 0 });
+  } catch (error) {
+    return res.status(500).send({ error: error.message || "Failed to clear conversation" });
+  }
+});
+
 app.post("/loggedinuser", async (req, res) => {
   try {
     const { email } = req.body;
