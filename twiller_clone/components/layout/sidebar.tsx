@@ -97,18 +97,18 @@ const Sidebar = ({ currentPage = "home", onNavigate, notifCount = 0, msgUnread =
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-center xl:justify-start gap-3 rounded-full px-2 xl:px-3 py-6 hover:bg-gray-900 text-white transition-all"
+                className="group w-full justify-center xl:justify-start gap-3 rounded-full px-3 xl:px-4 py-5 hover:bg-white/10 text-white transition-all"
               >
                 <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={user.avatar} />
+                  <AvatarImage src={user.avatar || undefined} />
                   <AvatarFallback className="bg-gray-700 text-white">
                     {user.displayName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden xl:flex flex-1 text-left min-w-0 flex-col">
-                  <div className="font-bold text-sm truncate">{user.displayName}</div>
+                  <div className="font-bold text-sm truncate text-white group-hover:text-white">{user.displayName}</div>
                 </div>
-                <MoreHorizontal className="hidden xl:block h-5 w-5 text-gray-400 shrink-0" />
+                <MoreHorizontal className="hidden xl:block h-5 w-5 text-gray-400 group-hover:text-white shrink-0" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-black border-gray-700 text-white w-56" side="top" align="start">

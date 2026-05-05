@@ -42,7 +42,7 @@ function NotificationItem({ n }: { n: any }) {
       </div>
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={n.sender?.avatar} />
+          <AvatarImage src={n.sender?.avatar || undefined} />
           <AvatarFallback className="bg-gray-700 text-white">
             {n.sender?.displayName?.[0] || "?"}
           </AvatarFallback>

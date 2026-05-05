@@ -16,6 +16,7 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { SocketProvider, useSocket } from "@/context/socketcontext";
 import axiosInstance from "@/lib/axiosinstance";
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 
 import BottomNav from "./bottomnav";
 
@@ -23,6 +24,7 @@ import BottomNav from "./bottomnav";
 const InnerLayout = ({ children }: any) => {
   const { user } = useAuth();
   const { socket } = useSocket();
+  const { requestPermission } = useBrowserNotifications();
   const [currentPage, setCurrentPage] = useState("home");
   const [notifCount, setNotifCount] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
@@ -74,6 +76,11 @@ const InnerLayout = ({ children }: any) => {
       setMsgUnread(0);
     }
   }, [currentPage, user?._id]);
+
+  // Request browser notification permission
+  useEffect(() => {
+    requestPermission();
+  }, [requestPermission]);
 
   if (!user) return <>{children}</>;
 

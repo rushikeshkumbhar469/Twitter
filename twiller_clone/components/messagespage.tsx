@@ -4,6 +4,7 @@ import { useAuth } from "@/context/authcontext";
 import { useTranslation } from "@/context/translationcontext";
 import { useSocket } from "@/context/socketcontext";
 import axiosInstance from "@/lib/axiosinstance";
+
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -15,11 +16,10 @@ import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 function MessageBubble({ msg, isMe }: { msg: any; isMe: boolean }) {
   const { translated, loading } = useAutoTranslate(msg.text || "");
   return (
-    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm ${
-      isMe
+    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm ${isMe
         ? "bg-blue-500 text-white rounded-br-sm"
         : "bg-gray-800 text-white rounded-bl-sm"
-    }`}>
+      }`}>
       <p className={`transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}>
         {translated}
       </p>
@@ -52,7 +52,7 @@ export default function MessagesPage() {
         if (following.length === 0) { setLoading(false); return; }
         // Fetch each followed user's profile
         Promise.all(following.map((id: string) =>
-          axiosInstance.get(`/loggedinuser?email=&_id=${id}`).catch(() => null)
+          axiosInstance.get(`/loggedinuser?_id=${id}`).catch(() => null)
         )).then((results) => {
           const valid = results.filter(Boolean).map((r: any) => r?.data).filter(Boolean);
           setContacts(valid);
@@ -71,6 +71,9 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!socket) return;
     socket.on("newMessage", (data: any) => {
+      // Don't add our own messages again (they're already added locally)
+      if (data.senderId === user?._id) return;
+
       const convId = data.conversationId;
       setMessages((prev) => ({ ...prev, [convId]: [...(prev[convId] || []), data] }));
       if (!selected || selected._id !== data.senderId) {
@@ -78,20 +81,27 @@ export default function MessagesPage() {
       }
     });
     return () => { socket.off("newMessage"); };
-  }, [socket, selected]);
+  }, [socket, selected, user?._id]);
 
   const getConvId = (otherId: string) => {
     if (!user?._id) return "";
     return [user._id, otherId].sort().join("_");
   };
 
-  const openConversation = (contact: any) => {
+  const openConversation = async (contact: any) => {
     const convId = getConvId(contact._id);
     setSelected(contact);
     setUnreadMap((prev) => ({ ...prev, [contact._id]: 0 }));
     socket?.emit("joinConversation", convId);
+
     if (!messages[convId]) {
-      setMessages((prev) => ({ ...prev, [convId]: [] }));
+      try {
+        const response = await axiosInstance.get(`/messages?conversationId=${encodeURIComponent(convId)}`);
+        setMessages((prev) => ({ ...prev, [convId]: response.data.messages || [] }));
+      } catch (err) {
+        console.error("Failed to load conversation history:", err);
+        setMessages((prev) => ({ ...prev, [convId]: [] }));
+      }
     }
   };
 
@@ -101,6 +111,7 @@ export default function MessagesPage() {
     const msg = {
       conversationId: convId,
       senderId: user._id,
+      recipientId: selected._id,
       senderName: user.displayName,
       senderAvatar: user.avatar,
       text: input.trim(),
@@ -148,13 +159,12 @@ export default function MessagesPage() {
               <div
                 key={contact._id}
                 onClick={() => openConversation(contact)}
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-900 cursor-pointer transition-colors ${
-                  selected?._id === contact._id ? "bg-gray-900" : ""
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-900 cursor-pointer transition-colors ${selected?._id === contact._id ? "bg-gray-900" : ""
+                  }`}
               >
                 <div className="relative">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={contact.avatar} />
+                    <AvatarImage src={contact.avatar || undefined} />
                     <AvatarFallback className="bg-gray-700 text-white">{contact.displayName?.[0]}</AvatarFallback>
                   </Avatar>
                   {(unreadMap[contact._id] || 0) > 0 && (
@@ -190,7 +200,7 @@ export default function MessagesPage() {
                 <ArrowLeft className="h-5 w-5 text-white" />
               </Button>
               <Avatar className="h-10 w-10">
-                <AvatarImage src={selected.avatar} />
+                <AvatarImage src={selected.avatar || undefined} />
                 <AvatarFallback className="bg-gray-700 text-white">{selected.displayName?.[0]}</AvatarFallback>
               </Avatar>
               <div>
@@ -206,19 +216,19 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 currentMessages.map((msg: any, i: number) => {
-                const isMe = msg.senderId === user?._id;
-                return (
-                  <div key={i} className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-                    {!isMe && (
-                      <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={msg.senderAvatar} />
-                        <AvatarFallback className="bg-gray-700 text-white">{msg.senderName?.[0]}</AvatarFallback>
-                      </Avatar>
-                    )}
-                    <MessageBubble msg={msg} isMe={isMe} />
-                  </div>
-                );
-              })
+                  const isMe = msg.senderId === user?._id;
+                  return (
+                    <div key={i} className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                      {!isMe && (
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={msg.senderAvatar || undefined} />
+                          <AvatarFallback className="bg-gray-700 text-white">{msg.senderName?.[0]}</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <MessageBubble msg={msg} isMe={isMe} />
+                    </div>
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>

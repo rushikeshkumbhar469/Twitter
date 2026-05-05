@@ -286,7 +286,7 @@ const TweetComposer = ({ onTweetPosted }: any) => {
             <CardContent className="pt-4">
                 <div className="flex space-x-4">
                     <Avatar className="h-12 w-12">
-                        <AvatarImage src={user.avatar} alt={user.displayName} />
+                        <AvatarImage src={user.avatar || undefined} alt={user.displayName} />
                         <AvatarFallback>
                             {user.displayName[0]}
                         </AvatarFallback>

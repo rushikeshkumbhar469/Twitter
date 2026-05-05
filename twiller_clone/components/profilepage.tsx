@@ -15,6 +15,13 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 import axiosInstance from "@/lib/axiosinstance";
 import { TranslatedText } from "@/components/ui/translated-text";
 
@@ -39,13 +46,12 @@ export type Tweet = {
 };
 
 const ProfilePage = () => {
-  const { user, getLoginHistory } = useAuth();
+  const { user, getLoginHistory, setuser } = useAuth();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("posts");
   const [showEditModal, setShowEditModal] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const { setuser } = useAuth();
 
   // Translate bio text to current language
   const { translated: translatedBio } = useAutoTranslate(user?.bio || "");
@@ -139,6 +145,25 @@ const ProfilePage = () => {
       setLoading(false);
       // Reset input value so same file can be selected again
       e.target.value = "";
+    }
+  };
+
+  const handleClearProfileAsset = async (type: "avatar" | "cover") => {
+    if (!user?.email) return;
+    try {
+      setLoading(true);
+      const removeData = type === "avatar" ? { avatar: "" } : { cover: "" };
+      const updateRes = await axiosInstance.patch(`/userupdate/${encodeURIComponent(user.email)}`, removeData);
+      if (updateRes.data) {
+        setuser(updateRes.data);
+        localStorage.setItem("twitter-user", JSON.stringify(updateRes.data));
+      }
+    } catch (error: any) {
+      console.error(`Error clearing ${type}:`, error);
+      const message = error.response?.data?.error || error.message || "Unknown error";
+      alert(`Failed to remove ${type}: ${message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -246,18 +271,51 @@ const ProfilePage = () => {
                 >
                   {t("editProfile")}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-gray-900 h-8 w-8 sm:h-9 sm:w-9"
-                >
-                  <MoreHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full hover:bg-gray-900 h-8 w-8 sm:h-9 sm:w-9"
+                    >
+                      <MoreHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-gray-950 border border-gray-800 text-white w-56">
+                    <DropdownMenuItem
+                      className="hover:bg-gray-900 cursor-pointer"
+                      onClick={() => handleClearProfileAsset("avatar")}
+                    >
+                      Delete profile photo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="hover:bg-gray-900 cursor-pointer"
+                      onClick={() => handleClearProfileAsset("cover")}
+                    >
+                      Delete banner photo
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             {user?.bio && (
               <p className="text-white mb-3 leading-relaxed text-sm sm:text-base">{translatedBio}</p>
             )}
+
+            <div className="flex flex-wrap items-center gap-4 mb-3 text-sm sm:text-base text-gray-300">
+              <div>
+                <span className="font-bold text-white">{userTweets.length}</span>{" "}
+                posts
+              </div>
+              <div>
+                <span className="font-bold text-white">{user?.followers?.length || 0}</span>{" "}
+                followers
+              </div>
+              <div>
+                <span className="font-bold text-white">{user?.following?.length || 0}</span>{" "}
+                following
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-400 text-[13px] sm:text-sm mb-3">
               <div className="flex items-center space-x-1">
@@ -345,7 +403,7 @@ const ProfilePage = () => {
                     <div key={reply._id} className="p-4 border-b border-gray-800 hover:bg-white/5 transition-colors">
                       <div className="flex gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={reply.author?.avatar} />
+                          <AvatarImage src={reply.author?.avatar || undefined} />
                           <AvatarFallback>{reply.author?.displayName?.[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">

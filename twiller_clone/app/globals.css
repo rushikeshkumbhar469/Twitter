@@ -154,9 +154,9 @@
   }
 
   /* Better content centering on tablets/iPads */
-  @screen md {
+  @media (min-width: 768px) {
     .max-w-content {
-      @apply max-w-2xl;
+      max-width: 42rem;
     }
   }
 }

@@ -32,7 +32,7 @@ function CommentItem({ c }: { c: any }) {
   return (
     <div className="flex gap-3">
       <Avatar className="h-8 w-8 shrink-0">
-        <AvatarImage src={c.author?.avatar} />
+        <AvatarImage src={c.author?.avatar || undefined} />
         <AvatarFallback className="bg-gray-700 text-white text-xs">{c.author?.displayName?.[0]}</AvatarFallback>
       </Avatar>
       <div className="bg-gray-900 rounded-xl px-3 py-2 flex-1">
@@ -213,7 +213,7 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
       <CardContent className="p-4">
         <div className="flex gap-3">
           <Avatar className="h-12 w-12 flex-shrink-0">
-            <AvatarImage src={avatar} />
+            <AvatarImage src={avatar || undefined} />
             <AvatarFallback className="bg-gray-700 text-white">{displayName?.[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -365,7 +365,7 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                 {user && (
                   <div className="flex gap-3 mb-3">
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarImage src={user.avatar} />
+                      <AvatarImage src={user.avatar || undefined} />
                       <AvatarFallback className="bg-gray-700 text-white text-xs">{user.displayName?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 flex gap-2">

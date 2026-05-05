@@ -118,7 +118,7 @@ export default function ExplorePage({ onNavigate }: { onNavigate: (page: string)
                   <div key={u._id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-900 transition-colors">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={u.avatar} />
+                        <AvatarImage src={u.avatar || undefined} />
                         <AvatarFallback className="bg-gray-700 text-white">{u.displayName?.[0]}</AvatarFallback>
                       </Avatar>
                       <div>

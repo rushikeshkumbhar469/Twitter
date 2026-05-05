@@ -22,18 +22,25 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const s = io(BACKEND, {
       path: "/socket.io",
       auth: { userId: user._id },
-      transports: ["polling", "websocket"],
+      transports: ["websocket", "polling"],
       reconnection: true,
-      secure: false,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      secure: BACKEND.startsWith("https"),
       withCredentials: true,
     });
 
     s.on("connect_error", (err) => {
-      console.error("Socket connect_error:", err);
+      console.warn("Socket connect_error:", err.message);
     });
 
     s.on("connect", () => {
-      console.log("Socket connected", s.id);
+      console.log("✅ Socket connected:", s.id);
+    });
+
+    s.on("disconnect", (reason) => {
+      console.warn("Socket disconnected:", reason);
     });
 
     socketRef.current = s;
@@ -42,6 +49,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       s.off("connect_error");
       s.off("connect");
+      s.off("disconnect");
       s.disconnect();
     };
   }, [user?._id]);

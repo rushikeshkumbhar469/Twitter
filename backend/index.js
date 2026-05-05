@@ -8,6 +8,7 @@ import User from "./modals/user.js";
 import Tweet from "./modals/tweet.js";
 import Notification from "./modals/notification.js";
 import Comment from "./modals/comment.js";
+import Message from "./modals/message.js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import multer from "multer";
@@ -26,12 +27,31 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   path: "/socket.io",
   cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://192.168.23.1:3000",
-      "http://192.168.23.1:3001",
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://192.168.23.1:3000",
+        "http://192.168.23.1:3001",
+        // Add production URLs when deploying
+        process.env.FRONTEND_URL,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+      ].filter(Boolean);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // For development, allow all localhost origins
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://192.168.')) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -52,12 +72,41 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
-  socket.on("sendMessage", (data) => {
-    // data: { conversationId, senderId, text, senderName, senderAvatar }
-    io.to(data.conversationId).emit("newMessage", {
-      ...data,
+  socket.on("sendMessage", async (data) => {
+    // data: { conversationId, senderId, recipientId, text, senderName, senderAvatar }
+    const messagePayload = {
+      conversationId: data.conversationId,
+      senderId: data.senderId,
+      recipientId: data.recipientId,
+      senderName: data.senderName,
+      senderAvatar: data.senderAvatar,
+      text: data.text,
+    };
+
+    try {
+      await Message.create(messagePayload);
+    } catch (err) {
+      console.error("Failed to save message:", err);
+    }
+
+    const message = {
+      ...messagePayload,
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    const senderSocketId = onlineUsers.get(String(data.senderId));
+    const recipientSocketId = onlineUsers.get(String(data.recipientId));
+
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("newMessage", message);
+    }
+    if (recipientSocketId && recipientSocketId !== senderSocketId) {
+      io.to(recipientSocketId).emit("newMessage", message);
+    }
+
+    if (!data.recipientId) {
+      io.to(data.conversationId).emit("newMessage", message);
+    }
   });
 
   socket.on("disconnect", () => {
@@ -543,6 +592,33 @@ app.get("/loggedinuser", async (req, res) => {
     }
 
     return res.status(400).send({ error: "email, _id or q required" });
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
+  }
+});
+
+app.post("/login-history", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).send({ error: "Email required" });
+
+    const user = await User.findOne({ email: String(email) });
+    if (!user) return res.status(404).send({ error: "User not found" });
+
+    return res.status(200).send(user.loginHistory || []);
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
+  }
+});
+
+app.get("/messages", async (req, res) => {
+  try {
+    const { conversationId } = req.query;
+    if (!conversationId) return res.status(400).send({ error: "conversationId required" });
+
+    const messages = await Message.find({ conversationId: String(conversationId) })
+      .sort({ createdAt: 1 });
+    return res.status(200).send({ messages });
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }

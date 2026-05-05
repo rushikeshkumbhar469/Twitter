@@ -149,7 +149,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
         {user && (
           <div className="flex items-center gap-4 px-4 py-5 border-b border-gray-800">
             <Avatar className="h-14 w-14">
-              <AvatarImage src={user.avatar} />
+              <AvatarImage src={user.avatar || undefined} />
               <AvatarFallback className="bg-gray-700 text-white text-lg">{user.displayName?.[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
