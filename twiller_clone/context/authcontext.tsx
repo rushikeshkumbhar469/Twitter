@@ -42,13 +42,20 @@ interface LoginResult {
   requiresOtp?: boolean;
 }
 
+interface LanguageOtpResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  phoneMismatch?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<LoginResult>;
   verifyLoginOtp: (email: string, password: string, otp: string) => Promise<LoginResult>;
   getLoginHistory: (email: string) => Promise<any[]>;
-  sendLanguageSwitchOtp: (targetLanguage: string, phoneOverride?: string) => Promise<{ success: boolean; error?: string; message?: string }>;
-  verifyLanguageSwitchOtp: (targetLanguage: string, otp: string, phoneOverride?: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  sendLanguageSwitchOtp: (targetLanguage: string, phoneOverride?: string) => Promise<LanguageOtpResult>;
+  verifyLanguageSwitchOtp: (targetLanguage: string, otp: string, phoneOverride?: string) => Promise<LanguageOtpResult>;
   switchLanguageDirectly: (targetLanguage: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   signup: (
     email: string,
@@ -230,13 +237,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const sendLanguageSwitchOtp = async (targetLanguage: string, phoneOverride?: string) => {
     if (!user?.email) return { success: false, error: "User not logged in" };
+    const phoneMismatch = Boolean(phoneOverride && user.phone && phoneOverride !== user.phone);
+    const emailOnly: boolean = targetLanguage === "fr" || !user.phone || phoneMismatch;
     try {
-      await axiosInstance.post("/send-signup-otp", {
+      const res = await axiosInstance.post<{ message?: string; phoneMismatch?: boolean }>("/send-signup-otp", {
         email: user.email,
-        phone: phoneOverride || user.phone || "",
+        phone: emailOnly ? "" : phoneOverride || user.phone || "",
         language: targetLanguage,
+        emailOnly,
       });
-      return { success: true, message: "Verification OTP sent successfully" };
+      return {
+        success: true,
+        message: res.data?.message || "Verification OTP sent successfully",
+        phoneMismatch: emailOnly,
+      } as LanguageOtpResult;
     } catch (err: any) {
       return { success: false, error: err?.response?.data?.error || "Failed to send OTP" };
     }
@@ -247,7 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await axiosInstance.post("/verify-signup-otp", {
         email: user.email,
-        phone: phoneOverride || user.phone || "",
+        phone: phoneOverride || "",
         language: targetLanguage,
         otp,
       });

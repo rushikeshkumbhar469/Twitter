@@ -130,7 +130,7 @@ const InnerLayout = ({ children }: any) => {
 
       {/* Global Compose Modal */}
       {isComposeOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] px-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-100 px-4">
           <div className="w-full max-w-xl bg-black rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <Button 

@@ -431,52 +431,55 @@ const signupOtpStore = new Map();
 
 app.post("/send-signup-otp", async (req, res) => {
   try {
-    const { email, phone, language } = req.body;
+    const { email, phone, language, emailOnly } = req.body;
     if (!email) return res.status(400).send({ error: "Email is required" });
-    if (language !== "fr" && !phone) return res.status(400).send({ error: "Phone number is required for non-French languages" });
 
+    const user = await User.findOne({ email });
+    const mismatch = !!phone && user?.phone && phone !== user.phone;
+    const shouldEmailOnly = emailOnly || language === "fr" || !user?.phone || mismatch;
     const otp = crypto.randomInt(100000, 999999).toString();
-    const identifier = language === "fr" ? email : phone;
-    
+    const identifier = shouldEmailOnly ? email : phone;
+
     signupOtpStore.set(identifier, { otp, expiresAt: Date.now() + 10 * 60 * 1000, verified: false });
 
-    if (language === "fr") {
+    if (shouldEmailOnly) {
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: email,
-          subject: "Your Twitter Clone Signup OTP",
-          text: `Your OTP for signup is: ${otp}\nThis is valid for 10 minutes.`,
+          subject: "Your Twitter Clone OTP",
+          text: `Your OTP is: ${otp}\nThis is valid for 10 minutes.`,
         });
       } else {
         console.log(`[TEST MODE] Signup Email OTP for ${email}: ${otp}`);
       }
-      return res.status(200).send({ message: "Email OTP sent successfully" });
-    } else {
-      // ── Always print to console for testing ────────────────────────────
-      console.log(`\n========================================`);
-      console.log(`[OTP TEST MODE] Phone: ${phone}`);
-      console.log(`[OTP TEST MODE] Generated OTP: ${otp}`);
-      console.log(`========================================\n`);
-      // ──────────────────────────────────────────────────────────────────
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-        try {
-          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-          await client.messages.create({
-            body: `Your Twitter Clone OTP is: ${otp}`,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: phone
-          });
-          return res.status(200).send({ message: "Mobile OTP sent successfully via SMS" });
-        } catch (err) {
-          console.error("Twilio SMS Error:", err);
-          // Still succeed so user can read OTP from backend console
-          return res.status(200).send({ message: "SMS failed but OTP is printed in backend console for testing." });
-        }
-      } else {
-        return res.status(200).send({ message: "Mobile OTP sent (check backend console for the code)" });
+      return res.status(200).send({ 
+        message: "Email OTP sent successfully",
+        phoneMismatch: mismatch || !user?.phone,
+      });
+    }
+
+    console.log(`\n========================================`);
+    console.log(`[OTP TEST MODE] Phone: ${phone}`);
+    console.log(`[OTP TEST MODE] Generated OTP: ${otp}`);
+    console.log(`========================================\n`);
+
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      try {
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        await client.messages.create({
+          body: `Your Twitter Clone OTP is: ${otp}`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: phone,
+        });
+        return res.status(200).send({ message: "Mobile OTP sent successfully via SMS" });
+      } catch (err) {
+        console.error("Twilio SMS Error:", err);
+        return res.status(200).send({ message: "SMS failed but OTP is printed in backend console for testing." });
       }
     }
+
+    return res.status(200).send({ message: "Mobile OTP sent (check backend console for the code)" });
   } catch (error) {
     return res.status(500).send({ error: "Failed to send signup OTP" });
   }
@@ -485,17 +488,17 @@ app.post("/send-signup-otp", async (req, res) => {
 app.post("/verify-signup-otp", async (req, res) => {
   try {
     const { email, phone, language, otp } = req.body;
-    const identifier = language === "fr" ? email : phone;
+    const identifier = !phone || language === "fr" ? email : phone;
     if (!identifier || !otp) return res.status(400).send({ error: "Identifier and OTP required" });
 
     const storedData = signupOtpStore.get(identifier);
     if (!storedData) return res.status(400).send({ error: "No pending OTP request found" });
-    if (Date.now() > storedData.expiresAt) { 
-      signupOtpStore.delete(identifier); 
-      return res.status(400).send({ error: "OTP expired" }); 
+    if (Date.now() > storedData.expiresAt) {
+      signupOtpStore.delete(identifier);
+      return res.status(400).send({ error: "OTP expired" });
     }
     if (storedData.otp !== otp) return res.status(400).send({ error: "Invalid OTP" });
-    
+
     signupOtpStore.set(identifier, { ...storedData, verified: true, expiresAt: Date.now() + 5 * 60 * 1000 });
     return res.status(200).send({ message: "Signup OTP verified successfully" });
   } catch (error) {

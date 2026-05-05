@@ -20,6 +20,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
   const [otpSent, setOtpSent] = React.useState(false);
   const [otpCode, setOtpCode] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState(user?.phone || "");
+  const [phoneMismatch, setPhoneMismatch] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   const languageOptions = [
@@ -39,13 +40,14 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
     setShowLanguagePanel(true);
     setOtpSent(false);
     setOtpCode("");
+    setPhoneMismatch(false);
     setTargetLanguage(language || "en");
     setToast(null);
   };
 
   const handleSendOtp = async () => {
     if (!targetLanguage) return;
-    
+
     if (targetLanguage === "en") {
       setBusy(true);
       const res = await switchLanguageDirectly("en");
@@ -59,22 +61,19 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
       return;
     }
 
-    if (targetLanguage !== "fr" && !phoneNumber) {
-      notify("error", "Phone number is required for mobile OTP");
-      return;
-    }
     setBusy(true);
-    const res = await sendLanguageSwitchOtp(targetLanguage, targetLanguage !== "fr" ? phoneNumber : undefined);
+    const res = await sendLanguageSwitchOtp(targetLanguage, phoneNumber);
     setBusy(false);
     if (!res.success) {
       notify("error", res.error || "Failed to send OTP");
       return;
     }
     setOtpSent(true);
-    if (targetLanguage === "fr") {
-      notify("info", "OTP sent to your email.");
+    setPhoneMismatch(!!res.phoneMismatch);
+    if (res.phoneMismatch) {
+      notify("info", "Phone is not linked or does not match your account. OTP has been sent to your registered email.");
     } else {
-      notify("info", "OTP generated! Check your backend terminal console for the code.");
+      notify("info", res.message || "OTP sent to your registered email.");
     }
   };
 
@@ -84,7 +83,11 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
       return;
     }
     setBusy(true);
-    const res = await verifyLanguageSwitchOtp(targetLanguage, otpCode, targetLanguage !== "fr" ? phoneNumber : undefined);
+    const res = await verifyLanguageSwitchOtp(
+      targetLanguage,
+      otpCode,
+      phoneMismatch || targetLanguage === "fr" ? undefined : phoneNumber
+    );
     setBusy(false);
     if (!res.success) {
       notify("error", res.error || "OTP verification failed");
@@ -102,7 +105,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
       items: [
         { icon: Settings, label: "Settings and privacy", action: () => notify("info", "Settings panel will be added in next update.") },
         { icon: HelpCircle, label: "Help Center", action: () => window.open("https://help.twitter.com/", "_blank") },
-        { icon: Keyboard, label: "Keyboard shortcuts", action: () => notify("info", "Keyboard shortcuts are not configured yet.") },
+        // { icon: Keyboard, label: "Keyboard shortcuts", action: () => notify("info", "Keyboard shortcuts are not configured yet.") },
       ],
     },
     {
@@ -110,7 +113,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
       items: [
         { icon: Globe, label: "Language", action: openLanguagePanel },
         { icon: Moon, label: "Display", action: () => notify("info", "Display controls will be added soon.") },
-        { icon: AtSign, label: "Accessibility", action: () => notify("info", "Accessibility settings will be added soon.") },
+        // { icon: AtSign, label: "Accessibility", action: () => notify("info", "Accessibility settings will be added soon.") },
       ],
     },
     {
@@ -180,7 +183,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
               <Input
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter phone number (e.g. +1234567890)"
+                placeholder="Enter Phone Number"
                 className="bg-gray-900 border-gray-700 text-white"
                 disabled={busy}
               />
@@ -233,7 +236,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
               </div>
             )}
             <TranslatedText 
-              text="French uses email OTP. Other languages use mobile OTP based on your saved phone number." 
+              text="OTP will be sent to your registered email, as your phone number is not linked to the account." 
               as="p" 
               className="text-xs text-gray-500" 
             />
@@ -275,7 +278,7 @@ export default function MorePage({ onNavigate }: { onNavigate?: (page: string) =
         </div>
 
         <TranslatedText 
-          text="© 2024 X Corp. · Privacy · Terms · Cookies · Accessibility · Ads info" 
+          text="© 2026 X Corp. · Privacy · Terms · Cookies · Accessibility · Ads info" 
           as="p" 
           className="text-center text-xs text-gray-600 py-4 px-4" 
         />
