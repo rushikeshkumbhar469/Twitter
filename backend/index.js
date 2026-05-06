@@ -36,7 +36,7 @@ const io = new Server(httpServer, {
         "http://localhost:3001",
         "http://192.168.23.1:3000",
         "http://192.168.23.1:3001",
-        // Add production URLs when deploying
+        "https://twitter-puce-rho.vercel.app",
         process.env.FRONTEND_URL,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
       ].filter(Boolean);
@@ -122,7 +122,11 @@ function emitNotification(recipientId, notification) {
 }
 
 app.use(cors({
-  origin: ["http://localhost:3000", "https://twitter-d0dc.onrender.com"],
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001", 
+    "https://twitter-puce-rho.vercel.app",
+  ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
