@@ -306,7 +306,7 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
                 <span className="text-sm">{formatNumber(commentCount)}</span>
               </Button>
 
-              {/* Retweet */}
+              {/* Retweet
               <Button
                 variant="ghost" size="sm"
                 className={`flex items-center space-x-2 p-2 rounded-full hover:bg-emerald-900/20 group ${
@@ -317,7 +317,7 @@ const TweetCard = ({ tweet, onUpdate }: { tweet: any; onUpdate?: (updated: any) 
               >
                 <Repeat2 className={`h-5 w-5 ${retweeted ? "text-emerald-500" : ""}`} />
                 <span className="text-sm">{formatNumber(retweets)}</span>
-              </Button>
+              </Button> */}
 
               {/* Like */}
               <Button
